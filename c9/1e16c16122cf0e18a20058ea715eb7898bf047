@@ -1,0 +1,31 @@
+apps/stt-service/uv.lock
+  s_4bf6fcc52909b2::t_a4c4ac074a5798 1-1301
+apps/web/src/stores/apiKey.ts
+  s_1099d368588863::t_bd8a8737937ab3 1-125
+pnpm-lock.yaml
+  s_4bf6fcc52909b2::t_8e3a66efc10662 1-2420
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c91e16c16122cf0e18a20058ea715eb7898bf047",
+  "prompts": {},
+  "sessions": {
+    "s_1099d368588863": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f36fa-a362-71a1-be78-bce1e1b94411",
+        "model": "gpt-5.5"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    },
+    "s_4bf6fcc52909b2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f378d-1be6-7473-8841-c7471d2c0a1c",
+        "model": "gpt-5.5"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    }
+  }
+}
