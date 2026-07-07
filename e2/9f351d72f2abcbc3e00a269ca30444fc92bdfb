@@ -1,0 +1,24 @@
+package.json
+  s_336e75c46c4dac::t_ec4898aab7d69f 7
+README.md
+  s_336e75c46c4dac::t_662e45bbd6426a 12-22
+scripts/dev-all.mjs
+  s_336e75c46c4dac::t_6e3c2372e0caf9 20-23,32,39
+  s_336e75c46c4dac::t_ec4898aab7d69f 1,3-14,16-18,24-29,31,33-38,40-43,46-50,52,57,59-75,77-80,82-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e29f351d72f2abcbc3e00a269ca30444fc92bdfb",
+  "prompts": {},
+  "sessions": {
+    "s_336e75c46c4dac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f3a82-28c6-7481-b8bc-0a29d2b518cb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    }
+  }
+}
