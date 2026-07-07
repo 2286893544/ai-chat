@@ -1,0 +1,23 @@
+README.md
+  s_336e75c46c4dac::t_9244058c4cd539 1-11
+package.json
+  s_336e75c46c4dac::t_d37fad072e2038 7
+scripts/dev-all.sh
+  s_336e75c46c4dac::t_d37fad072e2038 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d766a1691a8fe01c5ed8a8e1a124eb88bb0ed26b",
+  "prompts": {},
+  "sessions": {
+    "s_336e75c46c4dac": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f3a82-28c6-7481-b8bc-0a29d2b518cb",
+        "model": "gpt-5.5"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    }
+  }
+}
