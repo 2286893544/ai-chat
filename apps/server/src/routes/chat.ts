@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 import { buildSystemPrompt } from '../prompt/builder.js';
 import { buildMessagesContext } from '../prompt/context.js';
+import { appConfig } from '../config.js';
+import { createTimeoutSignal } from '../utils/timeout.js';
 import logger from '../logger.js';
 import '../middleware/apiKey.js';
 import type { ChatStreamRequest, SSEStartEvent, SSEDeltaEvent, SSEDoneEvent, SSEErrorEvent, AppErrorResponse } from '@ai-chat/shared';
@@ -14,6 +17,24 @@ const SSE_EVENT_DELTA = 'message.delta';
 const SSE_EVENT_DONE = 'message.done';
 const SSE_EVENT_ERROR = 'message.error';
 
+const chatStreamSchema = z.object({
+  conversationId: z.string().min(1),
+  character: z.object({
+    id: z.string().min(1),
+    name: z.string().min(1).max(120),
+  }).passthrough(),
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string().max(appConfig.chat.maxInputChars),
+  })).default([]),
+  input: z.string().min(1).max(appConfig.chat.maxInputChars),
+  model: z.string().min(1).max(120).optional(),
+  thinking: z.object({
+    type: z.enum(['disabled', 'enabled']),
+    reasoning_effort: z.enum(['low', 'medium', 'high']).optional(),
+  }).optional(),
+});
+
 router.post('/api/chat/completions/stream', async (req: Request, res: Response) => {
   try {
     const apiKey = req.deepseekApiKey;
@@ -23,14 +44,14 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
       return;
     }
 
-    const body = req.body as ChatStreamRequest;
-    const { conversationId, character, messages, input, model, thinking } = body;
-
-    if (!conversationId || !character || input === undefined) {
-      const err: AppErrorResponse = { ok: false, code: 'UNKNOWN_ERROR', message: 'Missing required fields: conversationId, character, input' };
+    const parsedBody = chatStreamSchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      const err: AppErrorResponse = { ok: false, code: 'UNKNOWN_ERROR', message: parsedBody.error.issues[0]?.message || 'Invalid chat request' };
       res.status(400).json(err);
       return;
     }
+    const body = parsedBody.data as ChatStreamRequest;
+    const { conversationId, character, messages, input, model, thinking } = body;
 
     const messageId = uuidv4();
 
@@ -48,10 +69,13 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
 
     const characterData = character as any;
     const systemPrompt = buildSystemPrompt(characterData);
-    const chatMessages = buildMessagesContext(systemPrompt, messages, input);
+    const chatMessages = buildMessagesContext(systemPrompt, messages, input, {
+      maxMessages: appConfig.chat.maxMessages,
+      maxContextChars: appConfig.chat.maxContextChars,
+    });
 
-    const baseURL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
-    const targetModel = model || process.env.DEFAULT_DEEPSEEK_MODEL || 'deepseek-v4-flash';
+    const baseURL = appConfig.deepseekBaseUrl;
+    const targetModel = model || appConfig.defaultDeepseekModel;
 
     const abortController = new AbortController();
     abortControllers.set(messageId, abortController);
@@ -85,6 +109,7 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
         }
       }
 
+      const timeout = createTimeoutSignal(appConfig.chat.timeoutMs, abortController.signal);
       const response = await fetch(`${baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -92,8 +117,8 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(requestBody),
-        signal: abortController.signal,
-      });
+        signal: timeout.signal,
+      }).finally(timeout.clear);
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');

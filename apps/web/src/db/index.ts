@@ -1,6 +1,7 @@
 import type { Character, Conversation, Message } from '@ai-chat/shared'
+import { indexedDbInfo } from '../local-data/storageKeys'
 
-const DB_NAME = 'aiChatDB'
+const DB_NAME = indexedDbInfo.name
 const DB_VERSION = 1
 
 export type StoreName = 'characters' | 'conversations' | 'messages'
@@ -99,6 +100,12 @@ export async function saveCharacter(character: Character): Promise<void> {
 export async function deleteCharacter(id: string): Promise<void> {
   await withStore('characters', 'readwrite', (store) => {
     return store.delete(id)
+  })
+}
+
+export async function deleteAllCharacters(): Promise<void> {
+  await withStore('characters', 'readwrite', (store) => {
+    return store.clear()
   })
 }
 

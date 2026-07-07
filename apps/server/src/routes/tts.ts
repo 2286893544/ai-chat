@@ -3,8 +3,11 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { z } from 'zod';
 import type { AppErrorResponse } from '@ai-chat/shared';
 import logger from '../logger.js';
+import { appConfig } from '../config.js';
+import { fetchWithTimeout } from '../utils/timeout.js';
 
 const router = Router();
 
@@ -55,33 +58,49 @@ function runEdgeTts(text: string, options: { voice: string; rate: string; pitch:
   });
 }
 
+const ttsSchema = z.object({
+  provider: z.enum(['edge', 'elevenlabs']).default('elevenlabs'),
+  text: z.string().min(1).max(appConfig.tts.maxTextChars),
+  voiceId: z.string().min(1).max(120).default('JBFqnCBsd6RMkjVDRZzb'),
+  modelId: z.string().min(1).max(120).default('eleven_multilingual_v2'),
+  outputFormat: z.string().min(1).max(80).default('mp3_44100_128'),
+  stability: z.coerce.number().min(0).max(1).default(0.45),
+  similarityBoost: z.coerce.number().min(0).max(1).default(0.75),
+  style: z.coerce.number().min(0).max(1).default(0.35),
+  useSpeakerBoost: z.boolean().default(true),
+  edgeVoice: z.string().min(1).max(120).default('zh-CN-XiaoxiaoNeural'),
+  edgeRate: z.string().max(16).default('+0%'),
+  edgePitch: z.string().max(16).default('+0Hz'),
+  edgeVolume: z.string().max(16).default('+0%'),
+});
+
 router.post('/api/tts/speak', async (req: Request, res: Response) => {
   try {
-    const {
-      provider = 'elevenlabs',
-      text,
-      voiceId = 'JBFqnCBsd6RMkjVDRZzb',
-      modelId = 'eleven_multilingual_v2',
-      outputFormat = 'mp3_44100_128',
-      stability = 0.45,
-      similarityBoost = 0.75,
-      style = 0.35,
-      useSpeakerBoost = true,
-      edgeVoice = 'zh-CN-XiaoxiaoNeural',
-      edgeRate = '+0%',
-      edgePitch = '+0Hz',
-      edgeVolume = '+0%',
-    } = req.body || {};
-
-    if (!text || typeof text !== 'string') {
+    const parsedBody = ttsSchema.safeParse(req.body || {});
+    if (!parsedBody.success) {
       const err: AppErrorResponse = {
         ok: false,
         code: 'UNKNOWN_ERROR',
-        message: 'text is required',
+        message: parsedBody.error.issues[0]?.message || 'Invalid TTS request',
       };
       res.status(400).json(err);
       return;
     }
+    const {
+      provider,
+      text,
+      voiceId,
+      modelId,
+      outputFormat,
+      stability,
+      similarityBoost,
+      style,
+      useSpeakerBoost,
+      edgeVoice,
+      edgeRate,
+      edgePitch,
+      edgeVolume,
+    } = parsedBody.data;
 
     if (provider === 'edge') {
       const audio = await runEdgeTts(text, {
@@ -108,7 +127,7 @@ router.post('/api/tts/speak', async (req: Request, res: Response) => {
       return;
     }
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=${encodeURIComponent(outputFormat)}`,
       {
         method: 'POST',
@@ -127,6 +146,7 @@ router.post('/api/tts/speak', async (req: Request, res: Response) => {
           },
         }),
       },
+      appConfig.tts.timeoutMs,
     );
 
     if (!response.ok) {

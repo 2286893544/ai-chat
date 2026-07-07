@@ -10,6 +10,7 @@ import {
   stopSpeaking,
   blobToDataURL,
 } from '../utils/voice'
+import { normalizeLocalSTTErrorMessage } from '../utils/voiceError'
 import type { TTSConfig } from '@ai-chat/shared'
 
 function sanitizeTextForSpeech(text: string): string {
@@ -62,8 +63,15 @@ function waitForSpeechRecognitionResult(): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, 350))
 }
 
-function normalizeSTTProvider(value: string | null): 'browser' | 'faster-whisper' {
-  return value === 'browser' || value === 'faster-whisper' ? value : 'faster-whisper'
+type STTProvider = 'browser' | 'faster-whisper' | 'funasr'
+type LocalSTTProvider = Exclude<STTProvider, 'browser'>
+
+function normalizeSTTProvider(value: string | null): STTProvider {
+  return value === 'browser' || value === 'faster-whisper' || value === 'funasr' ? value : 'faster-whisper'
+}
+
+function getLocalSTTLabel(provider: LocalSTTProvider): string {
+  return provider === 'funasr' ? '本地 FunASR' : '本地 faster-whisper'
 }
 
 export const useVoiceStore = defineStore('voice', () => {
@@ -367,47 +375,50 @@ export const useVoiceStore = defineStore('voice', () => {
     const provider = normalizeSTTProvider(localStorage.getItem('sttProvider'))
 
     try {
-      if (provider !== 'faster-whisper') {
+      if (provider === 'browser') {
         if (!browserTranscript && !isSTTSupported.value) {
-          lastTranscriptionError.value = '当前浏览器不支持语音识别，请切换到本地 faster-whisper'
+          lastTranscriptionError.value = '当前浏览器不支持语音识别，请切换到本地识别'
         } else if (!browserTranscript) {
-          lastTranscriptionError.value = '浏览器没有识别到文字，请切换到本地 faster-whisper'
+          lastTranscriptionError.value = '浏览器没有识别到文字，请切换到本地识别'
         }
         return browserTranscript
       }
 
-      const whisperTranscript = await transcribeWithLocalWhisper(blob)
-      if (!whisperTranscript && !browserTranscript) {
-        lastTranscriptionError.value = '本地 faster-whisper 没有识别到文字'
+      const providerLabel = getLocalSTTLabel(provider)
+      const localTranscript = await transcribeWithLocalSTT(blob, provider)
+      if (!localTranscript && !browserTranscript) {
+        lastTranscriptionError.value = `${providerLabel} 没有识别到文字`
       }
-      return whisperTranscript || browserTranscript
+      return localTranscript || browserTranscript
     } catch (error) {
-      const message = error instanceof Error ? error.message : '本地 faster-whisper 请求失败'
+      const providerLabel = provider === 'browser' ? '本地识别' : getLocalSTTLabel(provider)
+      const message = normalizeLocalSTTErrorMessage(error, providerLabel)
       lastTranscriptionError.value = browserTranscript ? '' : message
-      console.warn('Local faster-whisper STT failed, falling back to browser transcript:', error)
+      console.warn(`${providerLabel} STT failed, falling back to browser transcript:`, error)
       return browserTranscript
     } finally {
       isTranscribing.value = false
     }
   }
 
-  async function transcribeWithLocalWhisper(blob: Blob): Promise<string> {
+  async function transcribeWithLocalSTT(blob: Blob, provider: LocalSTTProvider): Promise<string> {
+    const providerLabel = getLocalSTTLabel(provider)
     const response = await fetch('/api/stt/transcribe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        provider: 'faster-whisper',
+        provider,
         audioDataUrl: await blobToDataURL(blob),
-        model: localStorage.getItem('localWhisperModel') || 'base',
+        model: provider === 'funasr' ? 'paraformer' : localStorage.getItem('localWhisperModel') || 'base',
         language: localStorage.getItem('sttLanguage') || 'zh',
       }),
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '本地 faster-whisper 请求失败' }))
-      throw new Error(error.message || '本地 faster-whisper 请求失败')
+      const error = await response.json().catch(() => ({ message: `${providerLabel} 请求失败` }))
+      throw new Error(error.message || `${providerLabel} 请求失败`)
     }
 
     const data = await response.json() as { text?: string }

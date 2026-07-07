@@ -44,7 +44,24 @@
         </div>
         <div class="form-group">
           <label class="form-label">和用户的关系</label>
-          <input class="form-input" v-model="form.relationship" placeholder="朋友、恋人、老师、同事、陪伴者..." />
+          <ElSelect
+            class="relationship-select"
+            v-model="form.relationship"
+            filterable
+            allow-create
+            default-first-option
+            :reserve-keyword="false"
+            :teleported="false"
+            popper-class="relationship-select-popper"
+            placeholder="选择或输入关系"
+          >
+            <ElOption
+              v-for="relationship in relationshipSuggestions"
+              :key="relationship"
+              :label="relationship"
+              :value="relationship"
+            />
+          </ElSelect>
         </div>
       </div>
 
@@ -364,8 +381,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { ElMessage, ElOption, ElSelect } from 'element-plus'
 import { useCharacterStore } from '../stores/character'
 import TagsInput from '../components/TagsInput.vue'
+import { rolePresets, type RolePreset } from '../local-data/rolePresets'
 import { v4 as uuidv4 } from 'uuid'
 
 const router = useRouter()
@@ -374,6 +393,24 @@ const characterStore = useCharacterStore()
 
 const isNew = computed(() => route.params.id === 'new' || !route.params.id)
 const activeTab = ref('basic')
+
+const relationshipSuggestions = [
+  '朋友',
+  '日常聊天搭子',
+  '陪伴者',
+  '损友但有分寸',
+  '青梅竹马',
+  '暧昧对象',
+  '恋人',
+  '姐姐',
+  '哥哥',
+  '同桌',
+  '室友',
+  '树洞',
+  '守护者',
+  '网友',
+  '灵魂搭子',
+]
 
 const defaultForm = () => ({
   name: '',
@@ -437,12 +474,47 @@ const topicSources = [
   { value: 'random', label: '随机话题' },
 ]
 
+function applyPreset(preset: RolePreset) {
+  Object.assign(form, {
+    name: preset.name,
+    gender: preset.gender || 'neutral',
+    ageText: preset.ageText || '',
+    background: preset.background,
+    relationship: preset.relationship,
+    personalityTags: [...preset.personalityTags],
+    temperTags: [...preset.temperTags],
+    hobbies: [...preset.hobbies],
+    expertise: [...preset.expertise],
+    forbiddenTopics: [...preset.forbiddenTopics],
+    preferredTopics: [...preset.preferredTopics],
+    tone: preset.tone,
+    toneTags: [preset.tone],
+    speakingStyle: preset.speakingStyle,
+    catchphrases: [...preset.catchphrases],
+    replyLength: preset.replyLength,
+    emojiLevel: preset.emojiLevel,
+    userNickname: preset.userNickname || '',
+    followUp: true,
+    rememberContext: true,
+    avoidLong: preset.replyLength === 'short',
+    comfortOnLow: preset.id === 'warm-companion',
+    allowTease: preset.id === 'funny-banter',
+    allowFlirty: false,
+    safetyGuard: true,
+  })
+}
+
 onMounted(async () => {
   if (characterStore.characters.length === 0) {
     await characterStore.loadCharacters()
   }
 
-  if (!isNew.value) {
+  if (isNew.value && typeof route.query.preset === 'string') {
+    const preset = rolePresets.find((item) => item.id === route.query.preset)
+    if (preset) {
+      applyPreset(preset)
+    }
+  } else if (!isNew.value) {
     const char = characterStore.characters.find(c => c.id === route.params.id)
     if (char) {
       Object.assign(form, {
@@ -549,8 +621,10 @@ async function handleSave() {
 
   if (isNew.value) {
     await characterStore.addCharacter(characterData)
+    ElMessage.success(`已创建「${characterData.name}」`)
   } else {
     await characterStore.updateCharacter(route.params.id as string, characterData)
+    ElMessage.success(`已保存「${characterData.name}」`)
   }
 
   router.push('/characters')
@@ -564,5 +638,52 @@ function handleReset() {
 <style scoped>
 .tab-content {
   min-height: 300px;
+}
+
+.relationship-select {
+  width: 100%;
+}
+
+.relationship-select :deep(.el-select__wrapper) {
+  min-height: 40px;
+  padding: 6px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.relationship-select :deep(.el-select__wrapper.is-focused) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.relationship-select :deep(.el-select__placeholder),
+.relationship-select :deep(.el-select__selected-item) {
+  color: var(--text-primary);
+}
+
+.relationship-select :deep(.el-select__caret) {
+  color: var(--text-secondary);
+}
+
+.relationship-select :deep(.relationship-select-popper) {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.relationship-select :deep(.relationship-select-popper .el-select-dropdown__item) {
+  color: var(--text-secondary);
+}
+
+.relationship-select :deep(.relationship-select-popper .el-select-dropdown__item.is-hovering),
+.relationship-select :deep(.relationship-select-popper .el-select-dropdown__item:hover) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.relationship-select :deep(.relationship-select-popper .el-select-dropdown__item.is-selected) {
+  color: var(--accent-light);
 }
 </style>

@@ -195,6 +195,13 @@ export const useCharacterStore = defineStore('character', () => {
     }
   }
 
+  async function clearCharacters(): Promise<void> {
+    await db.deleteAllCharacters()
+    characters.value = []
+    currentCharacter.value = null
+    editingCharacter.value = null
+  }
+
   function getCurrentCharacter(): Character | null {
     return currentCharacter.value
   }
@@ -216,6 +223,7 @@ export const useCharacterStore = defineStore('character', () => {
     addCharacter,
     updateCharacter,
     deleteCharacter,
+    clearCharacters,
     getCurrentCharacter,
   }
 })

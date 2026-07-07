@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 import logger from '../logger.js';
+import { appConfig } from '../config.js';
 import type { ProactiveTickRequest, ProactiveTickResponse, AppErrorResponse } from '@ai-chat/shared';
 
 const router = Router();
@@ -44,6 +46,36 @@ function isWithinActiveHours(currentTime: string, start: string, end: string): b
   return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
 }
 
+const proactiveTickSchema = z.object({
+  conversationId: z.string().min(1),
+  character: z.object({
+    id: z.string().min(1).optional(),
+    name: z.string().min(1).max(120),
+    proactive: z.object({
+      enabled: z.boolean(),
+      minIntervalMinutes: z.number().min(1).max(24 * 60),
+      maxDailyCount: z.number().min(1).max(100),
+      activeHours: z.object({
+        start: z.string(),
+        end: z.string(),
+      }),
+      initiativeLevel: z.enum(['low', 'medium', 'high']),
+      topicSources: z.array(z.enum(['recent_context', 'hobbies', 'fixed_greeting', 'random'])),
+      doNotDisturb: z.boolean(),
+    }),
+    hobbies: z.array(z.string()).optional(),
+    preferredTopics: z.array(z.string()).optional(),
+    background: z.string().optional(),
+  }).passthrough(),
+  recentMessages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string().max(appConfig.chat.maxInputChars),
+    type: z.string().optional(),
+    createdAt: z.string().optional(),
+  })).default([]),
+  lastUserActiveAt: z.string().min(1),
+});
+
 router.post('/api/proactive/tick', async (req: Request, res: Response) => {
   try {
     const apiKey = req.deepseekApiKey;
@@ -57,18 +89,18 @@ router.post('/api/proactive/tick', async (req: Request, res: Response) => {
       return;
     }
 
-    const body = req.body as ProactiveTickRequest;
-    const { conversationId, character, recentMessages, lastUserActiveAt } = body;
-
-    if (!conversationId || !character || !lastUserActiveAt) {
+    const parsedBody = proactiveTickSchema.safeParse(req.body);
+    if (!parsedBody.success) {
       const err: AppErrorResponse = {
         ok: false,
         code: 'UNKNOWN_ERROR',
-        message: 'Missing required fields: conversationId, character, lastUserActiveAt',
+        message: parsedBody.error.issues[0]?.message || 'Invalid proactive request',
       };
       res.status(400).json(err);
       return;
     }
+    const body = parsedBody.data as ProactiveTickRequest;
+    const { conversationId, character, recentMessages, lastUserActiveAt } = body;
 
     const proactive = character.proactive;
 
@@ -155,8 +187,8 @@ router.post('/api/proactive/tick', async (req: Request, res: Response) => {
     }
 
     // All checks passed — generate a proactive message
-    const baseURL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
-    const defaultModel = process.env.DEFAULT_DEEPSEEK_MODEL || 'deepseek-v4-flash';
+    const baseURL = appConfig.deepseekBaseUrl;
+    const defaultModel = appConfig.defaultDeepseekModel;
 
     const client = new OpenAI({
       baseURL,

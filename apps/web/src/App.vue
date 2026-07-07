@@ -79,6 +79,14 @@ onMounted(async () => {
           <span class="nav-icon">⚙️</span>
           <span class="nav-label">设置</span>
         </button>
+        <button
+          class="nav-item"
+          :class="{ active: isActive('/project') }"
+          @click="navigateTo('/project')"
+        >
+          <span class="nav-icon">ⓘ</span>
+          <span class="nav-label">项目说明</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">

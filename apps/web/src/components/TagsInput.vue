@@ -10,7 +10,6 @@
         class="tag-input-field"
         v-model="currentInput"
         @keydown.enter.prevent="addTag"
-        @keydown.backspace="handleBackspace"
         @keydown.tab.prevent="addTag"
         @input="showSuggestions = true"
         @focus="showSuggestions = true"
@@ -76,12 +75,6 @@ function removeTag(i: number) {
   const newTags = [...props.modelValue]
   newTags.splice(i, 1)
   emit('update:modelValue', newTags)
-}
-
-function handleBackspace() {
-  if (currentInput.value === '' && props.modelValue.length > 0) {
-    removeTag(props.modelValue.length - 1)
-  }
 }
 
 function focusInput() {

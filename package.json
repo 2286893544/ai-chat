@@ -6,6 +6,7 @@
     "dev": "pnpm --parallel -r dev",
     "dev:all": "node scripts/dev-all.mjs",
     "dev:stt": "cd apps/stt-service && uv run uvicorn app:app --host 127.0.0.1 --port 8001",
+    "test": "pnpm --filter @ai-chat/server test",
     "build": "pnpm -r build",
     "start": "pnpm --filter @ai-chat/server start",
     "dev:web": "pnpm --filter @ai-chat/web dev",

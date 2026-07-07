@@ -5,7 +5,13 @@ requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.115.0",
   "faster-whisper>=1.1.0",
+  "funasr>=1.2.6",
+  "imageio-ffmpeg>=0.5.1",
+  "librosa>=0.10.0",
+  "modelscope>=1.17.1",
+  "numpy>=1.26.0",
   "python-multipart>=0.0.20",
+  "torch>=2.2.0",
+  "torchaudio>=2.2.0",
   "uvicorn[standard]>=0.30.0",
 ]
-

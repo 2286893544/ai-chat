@@ -28,8 +28,8 @@
           <span v-if="validated" class="success-banner" style="margin:0;padding:4px 12px">已验证</span>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary" @click="keyInput = apiKeyStore.apiKey; apiKeyStore.clearKey(); keyInput = ''">更换 Key</button>
-          <button class="btn btn-danger" @click="apiKeyStore.clearKey(); keyInput = ''">清空 Key</button>
+          <button class="btn btn-secondary" @click="handleChangeKey">更换 Key</button>
+          <button class="btn btn-danger" @click="handleClearKey">清空 Key</button>
           <button class="btn btn-secondary" @click="handleValidate" :disabled="validating">
             {{ validating ? '验证中...' : '重新验证' }}
           </button>
@@ -38,6 +38,25 @@
 
       <div v-if="error" class="error-banner" style="margin-top:12px">{{ error }}</div>
       <div v-if="success" class="success-banner" style="margin-top:12px">{{ success }}</div>
+    </div>
+
+    <!-- 本地数据与安全边界 -->
+    <div class="card settings-section">
+      <div class="card-title">本地数据与安全边界</div>
+      <div class="info-grid">
+        <div>
+          <div class="info-title">本地数据</div>
+          <ul class="info-list">
+            <li v-for="item in projectInfo.localData" :key="item">{{ item }}</li>
+          </ul>
+        </div>
+        <div>
+          <div class="info-title">安全提醒</div>
+          <ul class="info-list">
+            <li v-for="item in projectInfo.safetyNotes" :key="item">{{ item }}</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <!-- 模型设置 -->
@@ -65,18 +84,23 @@
         <select class="form-input" v-model="sttProvider">
           <option value="browser">浏览器识别（无需 Key，不稳定）</option>
           <option value="faster-whisper">本地 faster-whisper（无需 Key，需启动本地服务）</option>
+          <option value="funasr">本地 FunASR（中文优化，需启动本地服务）</option>
         </select>
       </div>
 
-      <template v-if="sttProvider === 'faster-whisper'">
+      <template v-if="sttProvider !== 'browser'">
         <div class="form-row">
-          <div class="form-group">
+          <div v-if="sttProvider === 'faster-whisper'" class="form-group">
             <label class="form-label">本地模型</label>
             <select class="form-input" v-model="localWhisperModel">
               <option value="base">base（推荐，速度和效果均衡）</option>
               <option value="small">small（更准，首次下载更久）</option>
               <option value="tiny">tiny（最快，效果一般）</option>
             </select>
+          </div>
+          <div v-else class="form-group">
+            <label class="form-label">本地模型</label>
+            <div class="form-input static-field">paraformer-zh + fsmn-vad + ct-punc</div>
           </div>
           <div class="form-group">
             <label class="form-label">识别语言</label>
@@ -87,6 +111,9 @@
             </select>
           </div>
         </div>
+        <p v-if="sttProvider === 'funasr'" class="settings-hint">
+          FunASR 更适合中文口语输入，首次使用会下载本地模型；后续会复用缓存。
+        </p>
       </template>
     </div>
 
@@ -207,10 +234,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import { useApiKeyStore } from '../stores/apiKey'
 import { useCharacterStore } from '../stores/character'
 import { useConversationStore } from '../stores/conversation'
 import { useMessageStore } from '../stores/message'
+import { defaultPreferences } from '../local-data/preferences'
+import { projectInfo } from '../local-data/projectInfo'
+import { storageKeys } from '../local-data/storageKeys'
 
 const apiKeyStore = useApiKeyStore()
 const characterStore = useCharacterStore()
@@ -222,93 +253,112 @@ const error = ref('')
 const success = ref('')
 const validating = ref(false)
 const validated = ref(false)
-function normalizeSTTProvider(value: string | null): 'browser' | 'faster-whisper' {
-  return value === 'browser' || value === 'faster-whisper' ? value : 'faster-whisper'
+function normalizeSTTProvider(value: string | null): 'browser' | 'faster-whisper' | 'funasr' {
+  return value === 'browser' || value === 'faster-whisper' || value === 'funasr' ? value : 'faster-whisper'
 }
 
-const defaultModel = ref(localStorage.getItem('defaultModel') || 'deepseek-v4-flash')
-const baseURL = ref(localStorage.getItem('baseURL') || 'https://api.deepseek.com')
-const sttProvider = ref(normalizeSTTProvider(localStorage.getItem('sttProvider')))
-const localWhisperModel = ref(localStorage.getItem('localWhisperModel') || 'base')
-const sttLanguage = ref(localStorage.getItem('sttLanguage') || 'zh')
-const ttsProvider = ref(localStorage.getItem('ttsProvider') || 'browser')
-const edgeTtsVoice = ref(localStorage.getItem('edgeTtsVoice') || 'zh-CN-XiaoxiaoNeural')
-const edgeTtsRate = ref(localStorage.getItem('edgeTtsRate') || '+0%')
-const edgeTtsPitch = ref(localStorage.getItem('edgeTtsPitch') || '+0Hz')
-const edgeTtsVolume = ref(localStorage.getItem('edgeTtsVolume') || '+0%')
-const elevenLabsApiKey = ref(localStorage.getItem('elevenLabsApiKey') || '')
-const elevenLabsVoiceId = ref(localStorage.getItem('elevenLabsVoiceId') || 'JBFqnCBsd6RMkjVDRZzb')
-const elevenLabsModelId = ref(localStorage.getItem('elevenLabsModelId') || 'eleven_multilingual_v2')
-const elevenLabsStability = ref(localStorage.getItem('elevenLabsStability') || '0.45')
-const elevenLabsSimilarityBoost = ref(localStorage.getItem('elevenLabsSimilarityBoost') || '0.75')
-const elevenLabsStyle = ref(localStorage.getItem('elevenLabsStyle') || '0.35')
+const defaultModel = ref(localStorage.getItem(storageKeys.defaultModel) || defaultPreferences.model)
+const baseURL = ref(localStorage.getItem(storageKeys.baseURL) || defaultPreferences.baseURL)
+const sttProvider = ref(normalizeSTTProvider(localStorage.getItem(storageKeys.sttProvider)))
+const localWhisperModel = ref(localStorage.getItem(storageKeys.localWhisperModel) || defaultPreferences.stt.localModel)
+const sttLanguage = ref(localStorage.getItem(storageKeys.sttLanguage) || defaultPreferences.stt.language)
+const ttsProvider = ref(localStorage.getItem(storageKeys.ttsProvider) || defaultPreferences.tts.provider)
+const edgeTtsVoice = ref(localStorage.getItem(storageKeys.edgeTtsVoice) || defaultPreferences.tts.edgeVoice)
+const edgeTtsRate = ref(localStorage.getItem(storageKeys.edgeTtsRate) || defaultPreferences.tts.edgeRate)
+const edgeTtsPitch = ref(localStorage.getItem(storageKeys.edgeTtsPitch) || defaultPreferences.tts.edgePitch)
+const edgeTtsVolume = ref(localStorage.getItem(storageKeys.edgeTtsVolume) || defaultPreferences.tts.edgeVolume)
+const elevenLabsApiKey = ref(localStorage.getItem(storageKeys.elevenLabsApiKey) || '')
+const elevenLabsVoiceId = ref(localStorage.getItem(storageKeys.elevenLabsVoiceId) || defaultPreferences.tts.elevenLabsVoiceId)
+const elevenLabsModelId = ref(localStorage.getItem(storageKeys.elevenLabsModelId) || defaultPreferences.tts.elevenLabsModelId)
+const elevenLabsStability = ref(localStorage.getItem(storageKeys.elevenLabsStability) || defaultPreferences.tts.elevenLabsStability)
+const elevenLabsSimilarityBoost = ref(localStorage.getItem(storageKeys.elevenLabsSimilarityBoost) || defaultPreferences.tts.elevenLabsSimilarityBoost)
+const elevenLabsStyle = ref(localStorage.getItem(storageKeys.elevenLabsStyle) || defaultPreferences.tts.elevenLabsStyle)
+
+function showSaved(message = '设置已保存') {
+  ElMessage({
+    message,
+    type: 'success',
+    grouping: true,
+    duration: 1600,
+  })
+}
 
 watch(defaultModel, (value) => {
-  localStorage.setItem('defaultModel', value)
+  localStorage.setItem(storageKeys.defaultModel, value)
+  showSaved('默认模型已保存')
 })
 
 watch(baseURL, (value) => {
-  localStorage.setItem('baseURL', value)
+  localStorage.setItem(storageKeys.baseURL, value)
 })
 
 watch(sttProvider, (value) => {
-  localStorage.setItem('sttProvider', value)
+  localStorage.setItem(storageKeys.sttProvider, value)
+  showSaved('语音识别设置已保存')
 })
 
 watch(localWhisperModel, (value) => {
-  localStorage.setItem('localWhisperModel', value)
+  localStorage.setItem(storageKeys.localWhisperModel, value)
+  showSaved('本地识别模型已保存')
 })
 
 watch(sttLanguage, (value) => {
-  localStorage.setItem('sttLanguage', value)
+  localStorage.setItem(storageKeys.sttLanguage, value)
+  showSaved('识别语言已保存')
 })
 
 watch(ttsProvider, (value) => {
-  localStorage.setItem('ttsProvider', value)
+  localStorage.setItem(storageKeys.ttsProvider, value)
+  showSaved('朗读引擎已保存')
 })
 
 watch(edgeTtsVoice, (value) => {
-  localStorage.setItem('edgeTtsVoice', value)
+  localStorage.setItem(storageKeys.edgeTtsVoice, value)
+  showSaved('Edge TTS 音色已保存')
 })
 
 watch(edgeTtsRate, (value) => {
-  localStorage.setItem('edgeTtsRate', value)
+  localStorage.setItem(storageKeys.edgeTtsRate, value)
+  showSaved('Edge TTS 语速已保存')
 })
 
 watch(edgeTtsPitch, (value) => {
-  localStorage.setItem('edgeTtsPitch', value)
+  localStorage.setItem(storageKeys.edgeTtsPitch, value)
+  showSaved('Edge TTS 音调已保存')
 })
 
 watch(edgeTtsVolume, (value) => {
-  localStorage.setItem('edgeTtsVolume', value)
+  localStorage.setItem(storageKeys.edgeTtsVolume, value)
+  showSaved('Edge TTS 音量已保存')
 })
 
 watch(elevenLabsApiKey, (value) => {
   if (value) {
-    localStorage.setItem('elevenLabsApiKey', value)
+    localStorage.setItem(storageKeys.elevenLabsApiKey, value)
   } else {
-    localStorage.removeItem('elevenLabsApiKey')
+    localStorage.removeItem(storageKeys.elevenLabsApiKey)
   }
 })
 
 watch(elevenLabsVoiceId, (value) => {
-  localStorage.setItem('elevenLabsVoiceId', value || 'JBFqnCBsd6RMkjVDRZzb')
+  localStorage.setItem(storageKeys.elevenLabsVoiceId, value || defaultPreferences.tts.elevenLabsVoiceId)
 })
 
 watch(elevenLabsModelId, (value) => {
-  localStorage.setItem('elevenLabsModelId', value)
+  localStorage.setItem(storageKeys.elevenLabsModelId, value)
+  showSaved('ElevenLabs 模型已保存')
 })
 
 watch(elevenLabsStability, (value) => {
-  localStorage.setItem('elevenLabsStability', value)
+  localStorage.setItem(storageKeys.elevenLabsStability, value)
 })
 
 watch(elevenLabsSimilarityBoost, (value) => {
-  localStorage.setItem('elevenLabsSimilarityBoost', value)
+  localStorage.setItem(storageKeys.elevenLabsSimilarityBoost, value)
 })
 
 watch(elevenLabsStyle, (value) => {
-  localStorage.setItem('elevenLabsStyle', value)
+  localStorage.setItem(storageKeys.elevenLabsStyle, value)
 })
 
 onMounted(() => {
@@ -321,6 +371,7 @@ async function handleValidate() {
   const key = keyInput.value || apiKeyStore.apiKey
   if (!key) {
     error.value = '请输入 API Key'
+    ElMessage.warning(error.value)
     return
   }
 
@@ -341,43 +392,89 @@ async function handleValidate() {
       validated.value = true
       success.value = 'API Key 验证通过！'
       keyInput.value = ''
+      ElMessage.success('API Key 已验证并保存')
     } else {
       error.value = data.message || 'Key 无效'
+      ElMessage.error(error.value)
     }
   } catch (err: any) {
     error.value = '验证失败：' + (err.message || '网络错误')
+    ElMessage.error(error.value)
   } finally {
     validating.value = false
   }
 }
 
-function handleClearConversations() {
+function handleChangeKey() {
+  keyInput.value = apiKeyStore.apiKey
+  apiKeyStore.clearKey()
+  keyInput.value = ''
+  validated.value = false
+  success.value = ''
+  ElMessage.info('已进入更换 Key 状态')
+}
+
+function handleClearKey() {
+  apiKeyStore.clearKey()
+  keyInput.value = ''
+  validated.value = false
+  success.value = ''
+  ElMessage.success('API Key 已清空')
+}
+
+async function handleClearConversations() {
   if (confirm('确定清空所有会话记录吗？此操作不可恢复。')) {
-    conversationStore.clearConversations()
+    await conversationStore.clearConversations()
     success.value = '所有会话已清空'
+    ElMessage.success('所有会话已清空')
   }
 }
 
-function handleClearAll() {
+async function handleClearAll() {
   if (confirm('确定清空全部数据（角色、会话、消息）吗？此操作不可恢复。')) {
-    characterStore.characters = []
-    conversationStore.clearConversations()
+    await characterStore.clearCharacters()
+    await conversationStore.clearConversations()
     apiKeyStore.clearKey()
-    localStorage.removeItem('defaultModel')
-    localStorage.removeItem('baseURL')
-    localStorage.removeItem('ttsProvider')
-    localStorage.removeItem('edgeTtsVoice')
-    localStorage.removeItem('edgeTtsRate')
-    localStorage.removeItem('edgeTtsPitch')
-    localStorage.removeItem('edgeTtsVolume')
-    localStorage.removeItem('elevenLabsApiKey')
-    localStorage.removeItem('elevenLabsVoiceId')
-    localStorage.removeItem('elevenLabsModelId')
-    localStorage.removeItem('elevenLabsStability')
-    localStorage.removeItem('elevenLabsSimilarityBoost')
-    localStorage.removeItem('elevenLabsStyle')
+    Object.values(storageKeys).forEach((key) => localStorage.removeItem(key))
     success.value = '全部数据已清空'
     validated.value = false
+    ElMessage.success('全部本地数据已清空')
   }
 }
 </script>
+
+<style scoped>
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.info-title {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.info-list {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  padding-left: 18px;
+}
+
+.static-field {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--text-secondary);
+}
+
+.settings-hint {
+  margin-top: -4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+</style>

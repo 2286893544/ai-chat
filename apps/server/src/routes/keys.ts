@@ -1,26 +1,33 @@
 import { Router, Request, Response } from 'express';
 import OpenAI from 'openai';
+import { z } from 'zod';
 import { maskKey } from '../utils/maskKey.js';
+import { appConfig } from '../config.js';
 import type { ValidateKeyRequest, ValidateKeyResponse, AppErrorResponse } from '@ai-chat/shared';
 
 const router = Router();
 
+const validateKeySchema = z.object({
+  apiKey: z.string().min(1).max(512),
+  model: z.string().min(1).max(120).optional(),
+});
+
 router.post('/api/keys/validate', async (req: Request, res: Response) => {
   try {
-    const { apiKey, model } = req.body as ValidateKeyRequest;
-
-    if (!apiKey) {
+    const parsedBody = validateKeySchema.safeParse(req.body);
+    if (!parsedBody.success) {
       const err: AppErrorResponse = {
         ok: false,
         code: 'API_KEY_MISSING',
-        message: 'apiKey is required in request body',
+        message: parsedBody.error.issues[0]?.message || 'apiKey is required in request body',
       };
       res.status(400).json(err);
       return;
     }
+    const { apiKey, model } = parsedBody.data as ValidateKeyRequest;
 
-    const baseURL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
-    const defaultModel = process.env.DEFAULT_DEEPSEEK_MODEL || 'deepseek-v4-flash';
+    const baseURL = appConfig.deepseekBaseUrl;
+    const defaultModel = appConfig.defaultDeepseekModel;
     const targetModel = model || defaultModel;
 
     const client = new OpenAI({

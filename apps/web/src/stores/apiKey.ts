@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { storageKeys } from '../local-data/storageKeys'
 
 export const useApiKeyStore = defineStore('apiKey', () => {
   const apiKey = ref('')
@@ -19,9 +20,9 @@ export const useApiKeyStore = defineStore('apiKey', () => {
   const hasKey = computed(() => apiKey.value.length > 0)
 
   function loadFromStorage() {
-    const saved = localStorage.getItem('aiChat_apiKey')
-    const remembered = localStorage.getItem('aiChat_apiKey_remember')
-    const validated = localStorage.getItem('aiChat_apiKey_lastValidated')
+    const saved = localStorage.getItem(storageKeys.apiKey)
+    const remembered = localStorage.getItem(storageKeys.apiKeyRemember)
+    const validated = localStorage.getItem(storageKeys.apiKeyLastValidated)
 
     if (remembered === 'true' && saved) {
       apiKey.value = saved
@@ -34,14 +35,14 @@ export const useApiKeyStore = defineStore('apiKey', () => {
 
   function saveToStorage() {
     if (remember.value && apiKey.value) {
-      localStorage.setItem('aiChat_apiKey', apiKey.value)
-      localStorage.setItem('aiChat_apiKey_remember', 'true')
+      localStorage.setItem(storageKeys.apiKey, apiKey.value)
+      localStorage.setItem(storageKeys.apiKeyRemember, 'true')
     } else {
-      localStorage.removeItem('aiChat_apiKey')
-      localStorage.setItem('aiChat_apiKey_remember', 'false')
+      localStorage.removeItem(storageKeys.apiKey)
+      localStorage.setItem(storageKeys.apiKeyRemember, 'false')
     }
     if (lastValidatedAt.value) {
-      localStorage.setItem('aiChat_apiKey_lastValidated', lastValidatedAt.value)
+      localStorage.setItem(storageKeys.apiKeyLastValidated, lastValidatedAt.value)
     }
   }
 
@@ -85,9 +86,9 @@ export const useApiKeyStore = defineStore('apiKey', () => {
     lastValidatedAt.value = undefined
     validationError.value = ''
     error.value = ''
-    localStorage.removeItem('aiChat_apiKey')
-    localStorage.removeItem('aiChat_apiKey_remember')
-    localStorage.removeItem('aiChat_apiKey_lastValidated')
+    localStorage.removeItem(storageKeys.apiKey)
+    localStorage.removeItem(storageKeys.apiKeyRemember)
+    localStorage.removeItem(storageKeys.apiKeyLastValidated)
   }
 
   function setKey(key: string) {
