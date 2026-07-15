@@ -3,7 +3,7 @@
 AI Chat 是一个轻量、本地优先、BYOK 的个人 AI 聊天工具。当前版本包含：
 
 - Vue + Pinia 聊天前端，角色、会话、消息保存在浏览器 IndexedDB。
-- Express API 代理 DeepSeek、ElevenLabs 和可选本地 STT 服务。
+- Express API 代理 DeepSeek / 智谱大模型、智谱 GLM-TTS、ElevenLabs 和可选本地 STT 服务。
 - 前端 `apps/web/src/local-data/` 保存默认偏好、存储键、角色预设和项目说明。
 - 聊天角色预设：日常唠嗑搭子、温柔陪伴者、吐槽玩梗朋友。
 - 后端基础防护：CORS 配置、请求大小限制、简单频控、输入校验、外部请求超时、聊天上下文预算裁剪。

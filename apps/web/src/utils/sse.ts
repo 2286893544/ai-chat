@@ -17,7 +17,7 @@ export class SSEClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-DeepSeek-Api-Key': apiKey,
+          'X-Model-Api-Key': apiKey,
         },
         body: JSON.stringify(body),
         signal,

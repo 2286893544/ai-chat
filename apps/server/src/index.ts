@@ -19,7 +19,7 @@ const PORT = appConfig.port;
 app.use(cors({
   origin: appConfig.corsOrigins.includes('*') ? '*' : appConfig.corsOrigins,
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'X-DeepSeek-Api-Key', 'X-ElevenLabs-Api-Key'],
+  allowedHeaders: ['Content-Type', 'X-Model-Api-Key', 'X-DeepSeek-Api-Key', 'X-ElevenLabs-Api-Key'],
 }));
 
 app.use(express.json({ limit: appConfig.jsonBodyLimit }));

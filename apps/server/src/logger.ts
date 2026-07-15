@@ -3,7 +3,7 @@ import pino from 'pino';
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   redact: {
-    paths: ['X-DeepSeek-Api-Key', '*key*'],
+    paths: ['X-Model-Api-Key', 'X-DeepSeek-Api-Key', '*key*'],
     censor: '***REDACTED***',
   },
   transport:

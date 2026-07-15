@@ -28,7 +28,7 @@ export function createRateLimitMiddleware(options: RateLimitOptions) {
     if (current.count > options.max) {
       res.status(429).json({
         ok: false,
-        code: 'DEEPSEEK_RATE_LIMITED',
+        code: 'MODEL_RATE_LIMITED',
         message: 'Too many requests. Please wait and try again.',
       });
       return;

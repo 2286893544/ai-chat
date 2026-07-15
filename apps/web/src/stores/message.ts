@@ -12,6 +12,8 @@ import { useApiKeyStore } from './apiKey'
 import { useCharacterStore } from './character'
 import { useConversationStore } from './conversation'
 import { createSSEClient } from '../utils/sse'
+import { defaultPreferences } from '../local-data/preferences'
+import { storageKeys } from '../local-data/storageKeys'
 
 type MessageInput = Omit<Message, 'id' | 'createdAt'> & Partial<Pick<Message, 'id' | 'createdAt'>>
 
@@ -33,6 +35,18 @@ export const useMessageStore = defineStore('message', () => {
     const msgs = currentMessages.value
     return msgs.length > 0 ? msgs[msgs.length - 1] : null
   })
+
+  function getModelRequestConfig() {
+    const rawProvider = localStorage.getItem(storageKeys.modelProvider) || defaultPreferences.modelProvider
+    const provider = rawProvider === 'zhipu' ? 'zhipu' : 'deepseek'
+    const providerDefault = defaultPreferences.providers[provider]
+
+    return {
+      provider,
+      model: localStorage.getItem(storageKeys.defaultModel) || providerDefault.model,
+      baseURL: localStorage.getItem(storageKeys.baseURL) || providerDefault.baseURL,
+    }
+  }
 
   async function loadMessages(conversationId: string) {
     loading.value = true
@@ -154,6 +168,7 @@ export const useMessageStore = defineStore('message', () => {
     abortController.value = abortCtrl
 
     let accumulatedContent = ''
+    const modelConfig = getModelRequestConfig()
 
     sseClient.connect(
       {
@@ -163,7 +178,7 @@ export const useMessageStore = defineStore('message', () => {
         },
         messages: apiMessages,
         input: text,
-        model: 'deepseek-v4-flash',
+        ...modelConfig,
         thinking: { type: 'disabled' },
       },
       apiKeyStore.apiKey,
@@ -238,24 +253,29 @@ export const useMessageStore = defineStore('message', () => {
       messages: Array<{ role: string; content: string }>
       input: string
       model?: string
+      provider?: string
+      baseURL?: string
     },
     onDelta: (delta: string) => void,
   ): Promise<string> {
     const abortCtrl = new AbortController()
     abortController.value = abortCtrl
+    const modelConfig = getModelRequestConfig()
 
     const response = await fetch('/api/chat/completions/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-DeepSeek-Api-Key': request.apiKey,
+        'X-Model-Api-Key': request.apiKey,
       },
       body: JSON.stringify({
         conversationId: request.conversationId,
         character: request.character,
         messages: request.messages,
         input: request.input,
-        model: request.model || 'deepseek-v4-flash',
+        provider: request.provider || modelConfig.provider,
+        model: request.model || modelConfig.model,
+        baseURL: request.baseURL || modelConfig.baseURL,
       }),
       signal: abortCtrl.signal,
     })
@@ -315,19 +335,27 @@ export const useMessageStore = defineStore('message', () => {
       character: any
       recentMessages: Array<{ role: string; content: string; type?: string; createdAt?: string }>
       lastUserActiveAt: string
+      model?: string
+      provider?: string
+      baseURL?: string
     }
   ): Promise<{ shouldSend: boolean; reason?: string; message?: any }> {
+    const modelConfig = getModelRequestConfig()
+
     const response = await fetch('/api/proactive/tick', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-DeepSeek-Api-Key': request.apiKey,
+        'X-Model-Api-Key': request.apiKey,
       },
       body: JSON.stringify({
         conversationId: request.conversationId,
         character: request.character,
         recentMessages: request.recentMessages,
         lastUserActiveAt: request.lastUserActiveAt,
+        provider: request.provider || modelConfig.provider,
+        model: request.model || modelConfig.model,
+        baseURL: request.baseURL || modelConfig.baseURL,
       }),
     })
 

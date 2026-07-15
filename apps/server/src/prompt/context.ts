@@ -11,7 +11,7 @@ interface ContextOptions {
 }
 
 /**
- * Assembles the messages array for the DeepSeek API.
+ * Assembles the messages array for the OpenAI-compatible model API.
  * Limits recent messages by count and character budget to stay within context.
  */
 export function buildMessagesContext(

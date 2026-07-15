@@ -44,6 +44,18 @@
         </template>
       </div>
       <div class="message-meta">{{ msg.status === 'streaming' ? '正在输入' : formatTime(msg.createdAt) }}</div>
+      <div
+        v-if="speechMessageId === msg.id && speechState === 'loading'"
+        class="speech-loading-progress"
+        role="progressbar"
+        aria-label="正在生成整段语音"
+        aria-valuetext="正在生成整段语音"
+      >
+        <span class="speech-loading-label">正在生成整段语音...</span>
+        <span class="speech-loading-track" aria-hidden="true">
+          <span class="speech-loading-bar"></span>
+        </span>
+      </div>
       <div class="message-actions" v-if="msg.status === 'done' || msg.status === 'failed'">
         <button class="message-action-btn" @click="emit('copy', msg.content)" v-if="msg.type === 'text'">复制</button>
         <button class="message-action-btn" @click="emit('delete', msg.id)">删除</button>

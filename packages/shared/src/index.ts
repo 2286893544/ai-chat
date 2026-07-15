@@ -20,7 +20,7 @@ export interface SafetyConfig {
   safetyGuardrails: boolean;
 }
 
-export type TTSProvider = 'browser' | 'edge' | 'elevenlabs';
+export type TTSProvider = 'browser' | 'edge' | 'elevenlabs' | 'zhipu';
 
 export interface TTSConfig {
   provider: TTSProvider;
@@ -28,6 +28,8 @@ export interface TTSConfig {
   edgeRate?: string;
   edgePitch?: string;
   edgeVolume?: string;
+  edgeEmotionEnabled?: boolean;
+  edgeEmotionStyle?: 'auto' | 'gentle' | 'happy' | 'excited' | 'sad' | 'worried' | 'tired' | 'calm' | 'serious';
   elevenLabsApiKey?: string;
   elevenLabsVoiceId?: string;
   elevenLabsModelId?: string;
@@ -35,6 +37,12 @@ export interface TTSConfig {
   elevenLabsSimilarityBoost?: number;
   elevenLabsStyle?: number;
   elevenLabsUseSpeakerBoost?: boolean;
+  zhipuVoice?: string;
+  zhipuSpeed?: number;
+  zhipuVolume?: number;
+  zhipuEmotionEnabled?: boolean;
+  zhipuEmotionStyle?: 'auto' | 'happy' | 'sad' | 'worried' | 'tired' | 'gentle' | 'excited';
+  zhipuEmotionGranularity?: 'sentence' | 'paragraph';
   browserRate?: number;
   browserPitch?: number;
 }
@@ -127,6 +135,10 @@ export type AppErrorCode =
   | 'DEEPSEEK_RATE_LIMITED'
   | 'DEEPSEEK_INSUFFICIENT_BALANCE'
   | 'DEEPSEEK_MODEL_UNAVAILABLE'
+  | 'MODEL_AUTH_FAILED'
+  | 'MODEL_RATE_LIMITED'
+  | 'MODEL_INSUFFICIENT_BALANCE'
+  | 'MODEL_UNAVAILABLE'
   | 'CONTEXT_TOO_LONG'
   | 'NETWORK_ERROR'
   | 'VOICE_PERMISSION_DENIED'
@@ -146,6 +158,8 @@ export interface AppErrorResponse {
 export interface ValidateKeyRequest {
   apiKey: string;
   model?: string;
+  provider?: ModelProvider;
+  baseURL?: string;
 }
 
 export interface ValidateKeyResponse {
@@ -160,14 +174,21 @@ export interface ChatStreamRequest {
   messages: Array<{ role: MessageRole; content: string }>;
   input: string;
   model?: string;
+  provider?: ModelProvider;
+  baseURL?: string;
   thinking?: { type: 'disabled' | 'enabled'; reasoning_effort?: 'low' | 'medium' | 'high' };
 }
+
+export type ModelProvider = 'deepseek' | 'zhipu';
 
 export interface ProactiveTickRequest {
   conversationId: string;
   character: Pick<Character, 'id' | 'name' | 'proactive' | 'hobbies' | 'preferredTopics' | 'background'>;
   recentMessages: Array<{ role: MessageRole; content: string; type?: MessageType; createdAt?: string }>;
   lastUserActiveAt: string;
+  model?: string;
+  provider?: ModelProvider;
+  baseURL?: string;
 }
 
 export interface ProactiveTickResponse {

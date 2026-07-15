@@ -172,6 +172,7 @@
               <option value="browser">系统朗读（本机浏览器）</option>
               <option value="edge">Edge TTS（免费，无需 Key）</option>
               <option value="elevenlabs">ElevenLabs（更自然、有情绪）</option>
+              <option value="zhipu">智谱 GLM-TTS（使用模型 API Key）</option>
             </select>
           </div>
 
@@ -180,21 +181,22 @@
               <div class="form-group">
                 <label class="form-label">中文音色</label>
                 <select class="form-input" v-model="form.edgeTtsVoice">
-                  <option value="zh-CN-XiaoxiaoNeural">晓晓（女声，自然）</option>
-                  <option value="zh-CN-XiaoyiNeural">晓伊（女声，亲和）</option>
-                  <option value="zh-CN-YunjianNeural">云健（男声，热情）</option>
-                  <option value="zh-CN-YunxiNeural">云希（男声，年轻）</option>
-                  <option value="zh-CN-YunxiaNeural">云夏（男声，可爱）</option>
-                  <option value="zh-CN-YunyangNeural">云扬（男声，稳重）</option>
-                  <option value="zh-CN-liaoning-XiaobeiNeural">东北话小北</option>
-                  <option value="zh-CN-shaanxi-XiaoniNeural">陕西话小妮</option>
-                  <option value="zh-HK-HiuGaaiNeural">粤语晓佳（女声）</option>
-                  <option value="zh-HK-HiuMaanNeural">粤语晓曼（女声）</option>
-                  <option value="zh-HK-WanLungNeural">粤语云龙（男声）</option>
-                  <option value="zh-TW-HsiaoChenNeural">台湾晓臻（女声）</option>
-                  <option value="zh-TW-HsiaoYuNeural">台湾晓雨（女声）</option>
-                  <option value="zh-TW-YunJheNeural">台湾云哲（男声）</option>
+                  <option v-for="voice in edgeTtsVoices" :key="voice.value" :value="voice.value">
+                    {{ voice.label }}
+                  </option>
                 </select>
+                <div class="voice-preview-grid">
+                  <button
+                    v-for="voice in edgeTtsVoices"
+                    :key="voice.value"
+                    class="btn btn-secondary btn-sm voice-preview-btn"
+                    :class="{ active: form.edgeTtsVoice === voice.value }"
+                    :disabled="previewingVoice !== null"
+                    @click="handlePreviewEdgeVoice(voice.value)"
+                  >
+                    ▶ {{ previewingVoice === `edge:${voice.value}` ? '播放中' : voice.label }}
+                  </button>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">语速</label>
@@ -226,6 +228,23 @@
                 </select>
               </div>
             </div>
+            <div class="toggle-row">
+              <span>隐藏情绪控制</span>
+              <div class="toggle" :class="{ active: form.edgeTtsEmotionEnabled }" @click="form.edgeTtsEmotionEnabled = !form.edgeTtsEmotionEnabled">
+                <div class="toggle-knob"></div>
+              </div>
+            </div>
+            <div v-if="form.edgeTtsEmotionEnabled" class="form-group">
+              <label class="form-label">情绪风格</label>
+              <select class="form-input" v-model="form.edgeTtsEmotionStyle">
+                <option v-for="style in edgeEmotionStyles" :key="style.value" :value="style.value">
+                  {{ style.label }}
+                </option>
+              </select>
+            </div>
+            <p v-if="form.edgeTtsEmotionEnabled" class="settings-hint">
+              不会向朗读文本添加可读标签，只会在后端按风格调整 Edge TTS 的语速、音调和音量。
+            </p>
           </template>
 
           <template v-if="form.ttsProvider === 'elevenlabs'">
@@ -236,7 +255,12 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Voice ID</label>
-                <input class="form-input" v-model="form.elevenLabsVoiceId" placeholder="JBFqnCBsd6RMkjVDRZzb" />
+                <div class="voice-input-row">
+                  <input class="form-input" v-model="form.elevenLabsVoiceId" placeholder="JBFqnCBsd6RMkjVDRZzb" />
+                  <button class="btn btn-secondary btn-sm" :disabled="previewingVoice !== null" @click="handlePreviewElevenLabsVoice">
+                    ▶ {{ previewingVoice === 'elevenlabs:current' ? '播放中' : '试听' }}
+                  </button>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">模型</label>
@@ -261,6 +285,77 @@
               <label class="form-label">表现力 {{ form.elevenLabsStyle }}</label>
               <input class="form-input" type="range" min="0" max="1" step="0.05" v-model="form.elevenLabsStyle" />
             </div>
+          </template>
+
+          <template v-if="form.ttsProvider === 'zhipu'">
+            <p class="settings-hint">使用全局模型 API Key。</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">音色</label>
+                <select class="form-input" v-model="form.zhipuTtsVoice">
+                  <option v-for="voice in zhipuTtsVoices" :key="voice.value" :value="voice.value">
+                    {{ voice.label }}
+                  </option>
+                </select>
+                <div class="voice-preview-grid">
+                  <button
+                    v-for="voice in zhipuTtsVoices"
+                    :key="voice.value"
+                    class="btn btn-secondary btn-sm voice-preview-btn"
+                    :class="{ active: form.zhipuTtsVoice === voice.value }"
+                    :disabled="previewingVoice !== null"
+                    @click="handlePreviewZhipuVoice(voice.value)"
+                  >
+                    ▶ {{ previewingVoice === `zhipu:${voice.value}` ? '播放中' : voice.label }}
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">语速</label>
+                <select class="form-input" v-model="form.zhipuTtsSpeed">
+                  <option value="0.8">稍慢</option>
+                  <option value="1">标准</option>
+                  <option value="1.2">推荐</option>
+                  <option value="1.5">快速</option>
+                  <option value="1.8">很快</option>
+                  <option value="2">最快</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">音量</label>
+                <select class="form-input" v-model="form.zhipuTtsVolume">
+                  <option value="0.8">稍低</option>
+                  <option value="1">正常</option>
+                  <option value="1.2">稍高</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <span>超情感表达</span>
+              <div class="toggle" :class="{ active: form.zhipuTtsEmotionEnabled }" @click="form.zhipuTtsEmotionEnabled = !form.zhipuTtsEmotionEnabled">
+                <div class="toggle-knob"></div>
+              </div>
+            </div>
+            <div v-if="form.zhipuTtsEmotionEnabled" class="form-row">
+              <div class="form-group">
+                <label class="form-label">情绪风格</label>
+                <select class="form-input" v-model="form.zhipuTtsEmotionStyle">
+                  <option v-for="style in zhipuEmotionStyles" :key="style.value" :value="style.value">
+                    {{ style.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">标注粒度</label>
+                <select class="form-input" v-model="form.zhipuTtsEmotionGranularity">
+                  <option value="sentence">每句话</option>
+                  <option value="paragraph">每一段</option>
+                </select>
+              </div>
+            </div>
+            <p v-if="form.zhipuTtsEmotionEnabled" class="settings-hint">
+              智谱当前接口没有隐藏情绪标签字段。为避免读出“开心、温柔”等标签，朗读请求会保持原文，不再注入可读情绪标签。
+            </p>
           </template>
         </template>
       </div>
@@ -383,16 +478,21 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElOption, ElSelect } from 'element-plus'
 import { useCharacterStore } from '../stores/character'
+import { useVoiceStore } from '../stores/voice'
 import TagsInput from '../components/TagsInput.vue'
 import { rolePresets, type RolePreset } from '../local-data/rolePresets'
+import { edgeEmotionStyles, edgeTtsVoices, ttsPreviewText, zhipuEmotionStyles, zhipuTtsVoices } from '../local-data/ttsVoices'
+import type { TTSConfig } from '@ai-chat/shared'
 import { v4 as uuidv4 } from 'uuid'
 
 const router = useRouter()
 const route = useRoute()
 const characterStore = useCharacterStore()
+const voiceStore = useVoiceStore()
 
 const isNew = computed(() => route.params.id === 'new' || !route.params.id)
 const activeTab = ref('basic')
+const previewingVoice = ref<string | null>(null)
 
 const relationshipSuggestions = [
   '朋友',
@@ -435,17 +535,25 @@ const defaultForm = () => ({
   userNickname: '',
   // Voice
   useGlobalTts: true,
-  ttsProvider: (localStorage.getItem('ttsProvider') || 'browser') as 'browser' | 'edge' | 'elevenlabs',
+  ttsProvider: (localStorage.getItem('ttsProvider') || 'browser') as 'browser' | 'edge' | 'elevenlabs' | 'zhipu',
   edgeTtsVoice: localStorage.getItem('edgeTtsVoice') || 'zh-CN-XiaoxiaoNeural',
   edgeTtsRate: localStorage.getItem('edgeTtsRate') || '+0%',
   edgeTtsPitch: localStorage.getItem('edgeTtsPitch') || '+0Hz',
   edgeTtsVolume: localStorage.getItem('edgeTtsVolume') || '+0%',
+  edgeTtsEmotionEnabled: localStorage.getItem('edgeTtsEmotionEnabled') === 'true',
+  edgeTtsEmotionStyle: localStorage.getItem('edgeTtsEmotionStyle') || 'auto',
   elevenLabsApiKey: localStorage.getItem('elevenLabsApiKey') || '',
   elevenLabsVoiceId: localStorage.getItem('elevenLabsVoiceId') || 'JBFqnCBsd6RMkjVDRZzb',
   elevenLabsModelId: localStorage.getItem('elevenLabsModelId') || 'eleven_multilingual_v2',
   elevenLabsStability: localStorage.getItem('elevenLabsStability') || '0.45',
   elevenLabsSimilarityBoost: localStorage.getItem('elevenLabsSimilarityBoost') || '0.75',
   elevenLabsStyle: localStorage.getItem('elevenLabsStyle') || '0.35',
+  zhipuTtsVoice: localStorage.getItem('zhipuTtsVoice') || 'tongtong',
+  zhipuTtsSpeed: localStorage.getItem('zhipuTtsSpeed') === '1' ? '1.2' : localStorage.getItem('zhipuTtsSpeed') || '1.2',
+  zhipuTtsVolume: localStorage.getItem('zhipuTtsVolume') || '1',
+  zhipuTtsEmotionEnabled: localStorage.getItem('zhipuTtsEmotionEnabled') === 'true',
+  zhipuTtsEmotionStyle: localStorage.getItem('zhipuTtsEmotionStyle') || 'auto',
+  zhipuTtsEmotionGranularity: localStorage.getItem('zhipuTtsEmotionGranularity') || 'sentence',
   // Rules
   followUp: true,
   rememberContext: true,
@@ -473,6 +581,53 @@ const topicSources = [
   { value: 'fixed_greeting', label: '固定问候' },
   { value: 'random', label: '随机话题' },
 ]
+
+async function previewVoice(previewKey: string, config: TTSConfig) {
+  previewingVoice.value = previewKey
+  try {
+    await voiceStore.speakText(ttsPreviewText, config)
+  } catch (err: any) {
+    ElMessage.error(err?.message || '试听失败')
+  } finally {
+    previewingVoice.value = null
+  }
+}
+
+function handlePreviewEdgeVoice(voice: string) {
+  return previewVoice(`edge:${voice}`, {
+    provider: 'edge',
+    edgeVoice: voice,
+    edgeRate: form.edgeTtsRate,
+    edgePitch: form.edgeTtsPitch,
+    edgeVolume: form.edgeTtsVolume,
+    edgeEmotionEnabled: form.edgeTtsEmotionEnabled,
+    edgeEmotionStyle: form.edgeTtsEmotionStyle as TTSConfig['edgeEmotionStyle'],
+  })
+}
+
+function handlePreviewElevenLabsVoice() {
+  return previewVoice('elevenlabs:current', {
+    provider: 'elevenlabs',
+    elevenLabsApiKey: form.elevenLabsApiKey || undefined,
+    elevenLabsVoiceId: form.elevenLabsVoiceId,
+    elevenLabsModelId: form.elevenLabsModelId,
+    elevenLabsStability: Number(form.elevenLabsStability),
+    elevenLabsSimilarityBoost: Number(form.elevenLabsSimilarityBoost),
+    elevenLabsStyle: Number(form.elevenLabsStyle),
+  })
+}
+
+function handlePreviewZhipuVoice(voice: string) {
+  return previewVoice(`zhipu:${voice}`, {
+    provider: 'zhipu',
+    zhipuVoice: voice,
+    zhipuSpeed: Number(form.zhipuTtsSpeed),
+    zhipuVolume: Number(form.zhipuTtsVolume),
+    zhipuEmotionEnabled: form.zhipuTtsEmotionEnabled,
+    zhipuEmotionStyle: form.zhipuTtsEmotionStyle as TTSConfig['zhipuEmotionStyle'],
+    zhipuEmotionGranularity: form.zhipuTtsEmotionGranularity as TTSConfig['zhipuEmotionGranularity'],
+  })
+}
 
 function applyPreset(preset: RolePreset) {
   Object.assign(form, {
@@ -541,12 +696,20 @@ onMounted(async () => {
         edgeTtsRate: char.tts?.edgeRate || localStorage.getItem('edgeTtsRate') || '+0%',
         edgeTtsPitch: char.tts?.edgePitch || localStorage.getItem('edgeTtsPitch') || '+0Hz',
         edgeTtsVolume: char.tts?.edgeVolume || localStorage.getItem('edgeTtsVolume') || '+0%',
+        edgeTtsEmotionEnabled: char.tts?.edgeEmotionEnabled ?? localStorage.getItem('edgeTtsEmotionEnabled') === 'true',
+        edgeTtsEmotionStyle: char.tts?.edgeEmotionStyle || localStorage.getItem('edgeTtsEmotionStyle') || 'auto',
         elevenLabsApiKey: char.tts?.elevenLabsApiKey || localStorage.getItem('elevenLabsApiKey') || '',
         elevenLabsVoiceId: char.tts?.elevenLabsVoiceId || localStorage.getItem('elevenLabsVoiceId') || 'JBFqnCBsd6RMkjVDRZzb',
         elevenLabsModelId: char.tts?.elevenLabsModelId || localStorage.getItem('elevenLabsModelId') || 'eleven_multilingual_v2',
         elevenLabsStability: String(char.tts?.elevenLabsStability ?? localStorage.getItem('elevenLabsStability') ?? '0.45'),
         elevenLabsSimilarityBoost: String(char.tts?.elevenLabsSimilarityBoost ?? localStorage.getItem('elevenLabsSimilarityBoost') ?? '0.75'),
         elevenLabsStyle: String(char.tts?.elevenLabsStyle ?? localStorage.getItem('elevenLabsStyle') ?? '0.35'),
+        zhipuTtsVoice: char.tts?.zhipuVoice || localStorage.getItem('zhipuTtsVoice') || 'tongtong',
+        zhipuTtsSpeed: String(char.tts?.zhipuSpeed ?? (localStorage.getItem('zhipuTtsSpeed') === '1' ? '1.2' : localStorage.getItem('zhipuTtsSpeed')) ?? '1.2'),
+        zhipuTtsVolume: String(char.tts?.zhipuVolume ?? localStorage.getItem('zhipuTtsVolume') ?? '1'),
+        zhipuTtsEmotionEnabled: char.tts?.zhipuEmotionEnabled ?? localStorage.getItem('zhipuTtsEmotionEnabled') === 'true',
+        zhipuTtsEmotionStyle: char.tts?.zhipuEmotionStyle || localStorage.getItem('zhipuTtsEmotionStyle') || 'auto',
+        zhipuTtsEmotionGranularity: char.tts?.zhipuEmotionGranularity || localStorage.getItem('zhipuTtsEmotionGranularity') || 'sentence',
         followUp: char.safety?.followUpQuestions ?? true,
         rememberContext: char.safety?.rememberContext ?? true,
         avoidLong: char.safety?.avoidLongReplies ?? false,
@@ -592,12 +755,20 @@ async function handleSave() {
       edgeRate: form.edgeTtsRate,
       edgePitch: form.edgeTtsPitch,
       edgeVolume: form.edgeTtsVolume,
+      edgeEmotionEnabled: form.edgeTtsEmotionEnabled,
+      edgeEmotionStyle: form.edgeTtsEmotionStyle as any,
       elevenLabsApiKey: form.elevenLabsApiKey || undefined,
       elevenLabsVoiceId: form.elevenLabsVoiceId,
       elevenLabsModelId: form.elevenLabsModelId,
       elevenLabsStability: Number(form.elevenLabsStability),
       elevenLabsSimilarityBoost: Number(form.elevenLabsSimilarityBoost),
       elevenLabsStyle: Number(form.elevenLabsStyle),
+      zhipuVoice: form.zhipuTtsVoice,
+      zhipuSpeed: Number(form.zhipuTtsSpeed),
+      zhipuVolume: Number(form.zhipuTtsVolume),
+      zhipuEmotionEnabled: form.zhipuTtsEmotionEnabled,
+      zhipuEmotionStyle: form.zhipuTtsEmotionStyle as any,
+      zhipuEmotionGranularity: form.zhipuTtsEmotionGranularity as any,
     },
     safety: {
       followUpQuestions: form.followUp,

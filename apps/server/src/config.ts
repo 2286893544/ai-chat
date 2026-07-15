@@ -2,8 +2,9 @@ export interface AppConfig {
   port: number;
   corsOrigins: string[];
   jsonBodyLimit: string;
-  deepseekBaseUrl: string;
-  defaultDeepseekModel: string;
+  defaultModelProvider: 'deepseek' | 'zhipu';
+  defaultModelBaseUrl: string;
+  defaultModel: string;
   rateLimit: {
     windowMs: number;
     max: number;
@@ -25,6 +26,17 @@ export interface AppConfig {
   };
 }
 
+const providerDefaults = {
+  deepseek: {
+    baseURL: 'https://api.deepseek.com',
+    model: 'deepseek-v4-flash',
+  },
+  zhipu: {
+    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+    model: 'glm-5.2',
+  },
+} as const;
+
 function parseNumber(value: string | undefined, fallback: number, min = 1): number {
   if (!value) return fallback;
   const parsed = Number(value);
@@ -42,12 +54,16 @@ export function parseCorsOrigins(value: string | undefined): string[] {
 }
 
 export function createAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  const defaultModelProvider = env.DEFAULT_MODEL_PROVIDER === 'zhipu' ? 'zhipu' : 'deepseek';
+  const providerDefault = providerDefaults[defaultModelProvider];
+
   return {
     port: parseNumber(env.PORT, 3001),
     corsOrigins: parseCorsOrigins(env.CORS_ORIGIN || '*'),
     jsonBodyLimit: env.JSON_BODY_LIMIT || '2mb',
-    deepseekBaseUrl: env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
-    defaultDeepseekModel: env.DEFAULT_DEEPSEEK_MODEL || 'deepseek-v4-flash',
+    defaultModelProvider,
+    defaultModelBaseUrl: env.MODEL_BASE_URL || env.DEEPSEEK_BASE_URL || providerDefault.baseURL,
+    defaultModel: env.DEFAULT_MODEL || env.DEFAULT_DEEPSEEK_MODEL || providerDefault.model,
     rateLimit: {
       windowMs: parseNumber(env.RATE_LIMIT_WINDOW_MS, 60_000),
       max: parseNumber(env.RATE_LIMIT_MAX, 120),

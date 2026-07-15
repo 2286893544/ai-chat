@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 // Module augmentation for Express Request
 declare module 'express' {
   interface Request {
+    modelApiKey?: string;
     deepseekApiKey?: string;
   }
 }
@@ -17,17 +18,18 @@ export function apiKeyMiddleware(req: Request, res: Response, next: NextFunction
     return;
   }
 
-  const apiKey = req.headers['x-deepseek-api-key'] as string | undefined;
+  const apiKey = (req.headers['x-model-api-key'] || req.headers['x-deepseek-api-key']) as string | undefined;
 
   if (!apiKey || apiKey.trim() === '') {
     res.status(400).json({
       ok: false,
       code: 'API_KEY_MISSING',
-      message: 'Missing X-DeepSeek-Api-Key header',
+      message: 'Missing X-Model-Api-Key header',
     });
     return;
   }
 
+  req.modelApiKey = apiKey;
   req.deepseekApiKey = apiKey;
   next();
 }

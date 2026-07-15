@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { storageKeys } from '../local-data/storageKeys'
+import { defaultPreferences } from '../local-data/preferences'
 
 export const useApiKeyStore = defineStore('apiKey', () => {
   const apiKey = ref('')
@@ -18,6 +19,18 @@ export const useApiKeyStore = defineStore('apiKey', () => {
   })
 
   const hasKey = computed(() => apiKey.value.length > 0)
+
+  function getModelRequestConfig() {
+    const rawProvider = localStorage.getItem(storageKeys.modelProvider) || defaultPreferences.modelProvider
+    const provider = rawProvider === 'zhipu' ? 'zhipu' : 'deepseek'
+    const providerDefault = defaultPreferences.providers[provider]
+
+    return {
+      provider,
+      model: localStorage.getItem(storageKeys.defaultModel) || providerDefault.model,
+      baseURL: localStorage.getItem(storageKeys.baseURL) || providerDefault.baseURL,
+    }
+  }
 
   function loadFromStorage() {
     const saved = localStorage.getItem(storageKeys.apiKey)
@@ -59,7 +72,7 @@ export const useApiKeyStore = defineStore('apiKey', () => {
       const response = await fetch('/api/keys/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: apiKey.value }),
+        body: JSON.stringify({ apiKey: apiKey.value, ...getModelRequestConfig() }),
       })
 
       const data = await response.json()

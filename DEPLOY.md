@@ -14,20 +14,23 @@ Steps:
 1. Push the `ai-chat-web` directory as the root of a GitHub repository.
 2. In Render, create a new Blueprint from the repository.
 3. Render will read `render.yaml` and create the free web service.
-4. After the first deploy, open the service URL and configure the DeepSeek API key in the app settings.
+4. After the first deploy, open the service URL and configure the model provider and API key in the app settings.
 
 Notes:
 
 - Render free services can sleep when idle, so the first request after inactivity may be slow.
 - The local faster-whisper STT service is not deployed by this config. For online voice-to-text, use a hosted STT API or a separate paid service.
-- Browser TTS works client-side. ElevenLabs TTS works if the user configures an ElevenLabs key. Edge TTS depends on `uvx` being available on the server and is not guaranteed on free hosting.
+- Browser TTS works client-side. ElevenLabs TTS works if the user configures an ElevenLabs key. 智谱 GLM-TTS uses the model API Key configured in the browser. Edge TTS depends on `uvx` being available on the server and is not guaranteed on free hosting.
 
 ## Environment variables
 
 | Name | Default | Purpose |
 | --- | --- | --- |
-| `DEFAULT_DEEPSEEK_MODEL` | `deepseek-v4-flash` | Default chat model. |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | DeepSeek-compatible API base URL. |
+| `DEFAULT_MODEL_PROVIDER` | `deepseek` | Default provider. Use `zhipu` for 智谱大模型. |
+| `DEFAULT_MODEL` | `deepseek-v4-flash` | Default chat model. For 智谱, use models such as `glm-5.2`. |
+| `MODEL_BASE_URL` | `https://api.deepseek.com` | OpenAI-compatible API base URL. 智谱对话补全默认值为 `https://open.bigmodel.cn/api/paas/v4`. |
+| `DEFAULT_DEEPSEEK_MODEL` | `deepseek-v4-flash` | Backward-compatible alias for `DEFAULT_MODEL`. |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | Backward-compatible alias for `MODEL_BASE_URL`. |
 | `CORS_ORIGIN` | `*` | Comma-separated allowed origins. Use the deployed domain in production when possible. |
 | `JSON_BODY_LIMIT` | `2mb` | Express JSON body limit. |
 | `RATE_LIMIT_WINDOW_MS` | `60000` | In-memory API rate-limit window. |
@@ -35,9 +38,9 @@ Notes:
 | `CHAT_MAX_MESSAGES` | `40` | Max recent history messages sent to model. |
 | `CHAT_MAX_CONTEXT_CHARS` | `24000` | Max approximate history characters. |
 | `CHAT_MAX_INPUT_CHARS` | `8000` | Max single chat input characters. |
-| `CHAT_REQUEST_TIMEOUT_MS` | `60000` | DeepSeek stream request timeout. |
+| `CHAT_REQUEST_TIMEOUT_MS` | `60000` | Model stream request timeout. |
 | `TTS_TEXT_MAX_CHARS` | `2000` | Max TTS text length. |
-| `TTS_REQUEST_TIMEOUT_MS` | `30000` | ElevenLabs request timeout. |
+| `TTS_REQUEST_TIMEOUT_MS` | `30000` | ElevenLabs / 智谱 TTS request timeout. |
 | `STT_AUDIO_MAX_BYTES` | `4194304` | Max uploaded audio bytes after base64 decode. |
 | `STT_REQUEST_TIMEOUT_MS` | `60000` | STT service request timeout. |
 | `STT_SERVICE_URL` | `http://127.0.0.1:8001` | Optional local or separately deployed faster-whisper service. |

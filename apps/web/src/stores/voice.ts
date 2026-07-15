@@ -12,10 +12,24 @@ import {
 } from '../utils/voice'
 import { normalizeLocalSTTErrorMessage } from '../utils/voiceError'
 import type { TTSConfig } from '@ai-chat/shared'
+import { useApiKeyStore } from './apiKey'
+import { defaultPreferences } from '../local-data/preferences'
+import { storageKeys } from '../local-data/storageKeys'
+
+const STREAM_INITIAL_BUFFER_SECONDS = 0.45
+const STREAM_SCHEDULE_LEAD_SECONDS = 0.03
+const STREAM_PLAYBACK_GUARD_MS = 1200
+
+const SPEECH_EMOTION_LABELS = [
+  '开心', '高兴', '喜悦', '惊喜', '温柔', '轻柔', '平静', '严肃',
+  '悲伤', '伤心', '难过', '担心', '忧虑', '紧张', '害怕', '疲惫',
+  '疲倦', '激动', '兴奋', '生气', '愤怒',
+].join('|')
 
 function sanitizeTextForSpeech(text: string): string {
   return text
-    .replace(/[（(【\[][^（）()[\]【】]{1,80}[）)】\]]/g, '')
+    .replace(new RegExp(`(^|[\n。！？!?])\\s*[（(【\\[]\\s*(?:${SPEECH_EMOTION_LABELS})(?:地)?\\s*[）)】\\]]\\s*[:：]?`, 'g'), '$1')
+    .replace(new RegExp(`(^|\\n)\\s*(?:${SPEECH_EMOTION_LABELS})\\s*[:：]\\s*`, 'g'), '$1')
     .replace(/[\u{1F3FB}-\u{1F3FF}]/gu, '')
     .replace(/[\uFE0E\uFE0F]/g, '')
     .replace(/[\u200D]/g, '')
@@ -26,7 +40,10 @@ function sanitizeTextForSpeech(text: string): string {
 }
 
 function localNumber(key: string, fallback: number): number {
-  const value = Number(localStorage.getItem(key))
+  const storedValue = localStorage.getItem(key)
+  if (storedValue === null || storedValue.trim() === '') return fallback
+
+  const value = Number(storedValue)
   return Number.isFinite(value) ? value : fallback
 }
 
@@ -37,6 +54,8 @@ function resolveTTSConfig(roleConfig?: TTSConfig): TTSConfig {
     edgeRate: localStorage.getItem('edgeTtsRate') || '+0%',
     edgePitch: localStorage.getItem('edgeTtsPitch') || '+0Hz',
     edgeVolume: localStorage.getItem('edgeTtsVolume') || '+0%',
+    edgeEmotionEnabled: localStorage.getItem(storageKeys.edgeTtsEmotionEnabled) === 'true',
+    edgeEmotionStyle: (localStorage.getItem(storageKeys.edgeTtsEmotionStyle) as TTSConfig['edgeEmotionStyle']) || defaultPreferences.tts.edgeEmotionStyle,
     elevenLabsApiKey: localStorage.getItem('elevenLabsApiKey') || '',
     elevenLabsVoiceId: localStorage.getItem('elevenLabsVoiceId') || 'JBFqnCBsd6RMkjVDRZzb',
     elevenLabsModelId: localStorage.getItem('elevenLabsModelId') || 'eleven_multilingual_v2',
@@ -44,6 +63,12 @@ function resolveTTSConfig(roleConfig?: TTSConfig): TTSConfig {
     elevenLabsSimilarityBoost: localNumber('elevenLabsSimilarityBoost', 0.75),
     elevenLabsStyle: localNumber('elevenLabsStyle', 0.35),
     elevenLabsUseSpeakerBoost: localStorage.getItem('elevenLabsUseSpeakerBoost') !== 'false',
+    zhipuVoice: localStorage.getItem(storageKeys.zhipuTtsVoice) || defaultPreferences.tts.zhipuVoice,
+    zhipuSpeed: localNumber(storageKeys.zhipuTtsSpeed, Number(defaultPreferences.tts.zhipuSpeed)),
+    zhipuVolume: localNumber(storageKeys.zhipuTtsVolume, Number(defaultPreferences.tts.zhipuVolume)),
+    zhipuEmotionEnabled: localStorage.getItem(storageKeys.zhipuTtsEmotionEnabled) === 'true',
+    zhipuEmotionStyle: (localStorage.getItem(storageKeys.zhipuTtsEmotionStyle) as TTSConfig['zhipuEmotionStyle']) || defaultPreferences.tts.zhipuEmotionStyle,
+    zhipuEmotionGranularity: (localStorage.getItem(storageKeys.zhipuTtsEmotionGranularity) as TTSConfig['zhipuEmotionGranularity']) || defaultPreferences.tts.zhipuEmotionGranularity,
     browserRate: localNumber('browserTtsRate', 0.96),
     browserPitch: localNumber('browserTtsPitch', 1.06),
   }
@@ -95,6 +120,8 @@ export const useVoiceStore = defineStore('voice', () => {
   let lastRecordingBlob: Blob | null = null
   let currentAudio: HTMLAudioElement | null = null
   let currentAudioUrl: string | null = null
+  let currentAudioContext: AudioContext | null = null
+  let currentAudioSources: AudioBufferSourceNode[] = []
   let speechAbortController: AbortController | null = null
   let speechRequestVersion = 0
 
@@ -240,6 +267,11 @@ export const useVoiceStore = defineStore('voice', () => {
         return
       }
 
+      if (config.provider === 'zhipu') {
+        await speakWithZhipu(spokenText, controller.signal, config)
+        return
+      }
+
       await speakWithBrowser(spokenText, config)
     } finally {
       if (isCurrentSpeechRequest(requestVersion, controller)) {
@@ -266,6 +298,8 @@ export const useVoiceStore = defineStore('voice', () => {
         edgeRate: config.edgeRate || '+0%',
         edgePitch: config.edgePitch || '+0Hz',
         edgeVolume: config.edgeVolume || '+0%',
+        edgeEmotionEnabled: config.edgeEmotionEnabled === true,
+        edgeEmotionStyle: config.edgeEmotionStyle || defaultPreferences.tts.edgeEmotionStyle,
       }),
       signal,
     })
@@ -275,7 +309,7 @@ export const useVoiceStore = defineStore('voice', () => {
       throw new Error(error.message || 'Edge TTS request failed')
     }
 
-    await playAudioBlob(await response.blob())
+    await playAudioBlob(await response.blob(), signal)
   }
 
   async function speakWithElevenLabs(text: string, signal: AbortSignal, config: TTSConfig): Promise<void> {
@@ -310,35 +344,301 @@ export const useVoiceStore = defineStore('voice', () => {
       throw new Error(error.message || 'TTS request failed')
     }
 
-    await playAudioBlob(await response.blob())
+    await playAudioBlob(await response.blob(), signal)
   }
 
-  async function playAudioBlob(blob: Blob): Promise<void> {
-    isSpeechLoading.value = false
-    isPlaying.value = true
-    currentAudioUrl = URL.createObjectURL(blob)
-    currentAudio = new Audio(currentAudioUrl)
+  async function speakWithZhipu(text: string, signal: AbortSignal, config: TTSConfig): Promise<void> {
+    const apiKeyStore = useApiKeyStore()
+    if (!apiKeyStore.apiKey) {
+      throw new Error('请先在设置中填写智谱 API Key')
+    }
 
-    await new Promise<void>((resolve, reject) => {
-      if (!currentAudio) {
-        reject(new Error('Audio element was not created'))
-        return
+    const defaultSpeed = Number(defaultPreferences.tts.zhipuSpeed)
+    const defaultVolume = Number(defaultPreferences.tts.zhipuVolume)
+    const speed = config.zhipuSpeed ?? defaultSpeed
+    const volume = config.zhipuVolume ?? defaultVolume
+
+    const response = await fetch('/api/tts/speak', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Model-Api-Key': apiKeyStore.apiKey,
+      },
+      body: JSON.stringify({
+        provider: 'zhipu',
+        text,
+        zhipuVoice: config.zhipuVoice || defaultPreferences.tts.zhipuVoice,
+        zhipuSpeed: speed >= 0.5 && speed <= 2 ? speed : defaultSpeed,
+        zhipuVolume: volume > 0 && volume <= 10 ? volume : defaultVolume,
+        zhipuStream: false,
+        zhipuEmotionEnabled: config.zhipuEmotionEnabled === true,
+        zhipuEmotionStyle: config.zhipuEmotionStyle || defaultPreferences.tts.zhipuEmotionStyle,
+        zhipuEmotionGranularity: config.zhipuEmotionGranularity || defaultPreferences.tts.zhipuEmotionGranularity,
+        zhipuBaseURL: defaultPreferences.providers.zhipu.baseURL,
+      }),
+      signal,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: '智谱 TTS 请求失败' }))
+      throw new Error(error.message || '智谱 TTS 请求失败')
+    }
+
+    if (response.headers.get('content-type')?.includes('text/event-stream')) {
+      await playPcmEventStream(response, signal)
+      return
+    }
+
+    await playAudioBlob(await response.blob(), signal)
+  }
+
+  async function playPcmEventStream(response: Response, signal: AbortSignal): Promise<void> {
+    if (!response.body) {
+      throw new Error('智谱 TTS 流式响应为空')
+    }
+
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) {
+      throw new Error('当前浏览器不支持流式音频播放')
+    }
+
+    const audioContext = new AudioContextClass()
+    currentAudioContext = audioContext
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let eventBuffer = ''
+    let sampleRate = 24000
+    let hasAudio = false
+    let sawStopEvent = false
+    let completedNaturally = false
+    let playbackEndTime = audioContext.currentTime + STREAM_INITIAL_BUFFER_SECONDS
+    const sourceEndPromises: Promise<void>[] = []
+
+    const queuePcmChunk = (base64: string, chunkSampleRate: number) => {
+      if (signal.aborted) return
+      const samples = decodePcmChunk(base64)
+      if (samples.length === 0) return
+
+      const startTime = Math.max(
+        playbackEndTime,
+        audioContext.currentTime + STREAM_SCHEDULE_LEAD_SECONDS,
+      )
+      playbackEndTime = startTime + samples.length / chunkSampleRate
+      sourceEndPromises.push(schedulePcmSamples(samples, chunkSampleRate, audioContext, startTime))
+      hasAudio = true
+      isSpeechLoading.value = false
+      isPlaying.value = true
+    }
+
+    const handleEvent = (rawEvent: string) => {
+      const data = rawEvent
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.replace(/^data:\s?/, ''))
+        .join('\n')
+        .trim()
+
+      if (!data || data === '[DONE]') return
+
+      const parsed = JSON.parse(data) as {
+        error?: { message?: string }
+        choices?: Array<{
+          finish_reason?: string
+          delta?: {
+            content?: string
+            return_sample_rate?: number
+          }
+        }>
       }
 
-      currentAudio.onended = () => {
-        cleanupAudio()
+      if (parsed.error) {
+        throw new Error(parsed.error.message || '智谱 TTS 流式请求失败')
+      }
+
+      for (const choice of parsed.choices || []) {
+        if (choice.finish_reason === 'stop') {
+          sawStopEvent = true
+          continue
+        }
+        if (choice.delta?.return_sample_rate) {
+          sampleRate = choice.delta.return_sample_rate
+        }
+        if (choice.delta?.content) {
+          queuePcmChunk(choice.delta.content, sampleRate)
+        }
+      }
+    }
+
+    try {
+      while (true) {
+        if (signal.aborted) return
+        const { value, done } = await reader.read()
+        if (done) break
+
+        eventBuffer += decoder.decode(value, { stream: true })
+        const events = eventBuffer.split(/\r?\n\r?\n/)
+        eventBuffer = events.pop() || ''
+        for (const event of events) {
+          handleEvent(event)
+        }
+      }
+
+      eventBuffer += decoder.decode()
+      if (eventBuffer.trim()) {
+        handleEvent(eventBuffer)
+      }
+
+      if (!hasAudio) {
+        throw new Error('智谱 TTS 没有返回可播放的音频片段')
+      }
+
+      await waitForScheduledPcmPlayback(audioContext, playbackEndTime, sourceEndPromises, signal)
+      if (!sawStopEvent) {
+        throw new Error('智谱 TTS 流式响应未完整结束，请重试')
+      }
+      completedNaturally = !signal.aborted
+    } finally {
+      reader.releaseLock()
+      const ownsCurrentAudioContext = currentAudioContext === audioContext
+      cleanupPcmStream(audioContext, !completedNaturally)
+      if (ownsCurrentAudioContext) {
         isPlaying.value = false
+      }
+    }
+  }
+
+  function decodePcmChunk(base64: string): Float32Array {
+    const bytes = base64ToUint8Array(base64)
+    const sampleCount = Math.floor(bytes.byteLength / 2)
+    const samples = new Float32Array(sampleCount)
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+    for (let i = 0; i < sampleCount; i += 1) {
+      samples[i] = Math.max(-1, Math.min(1, view.getInt16(i * 2, true) / 32768))
+    }
+
+    return samples
+  }
+
+  function schedulePcmSamples(
+    samples: Float32Array,
+    sampleRate: number,
+    audioContext: AudioContext,
+    startTime: number,
+  ): Promise<void> {
+    if (samples.length === 0) return Promise.resolve()
+
+    const audioBuffer = audioContext.createBuffer(1, samples.length, sampleRate)
+    const channel = audioBuffer.getChannelData(0)
+    for (let i = 0; i < samples.length; i += 1) {
+      channel[i] = samples[i]
+    }
+
+    const source = audioContext.createBufferSource()
+    source.buffer = audioBuffer
+    source.connect(audioContext.destination)
+
+    currentAudioSources.push(source)
+
+    return new Promise((resolve) => {
+      source.onended = () => {
+        currentAudioSources = currentAudioSources.filter((item) => item !== source)
         resolve()
       }
-      currentAudio.onerror = () => {
-        cleanupAudio()
-        isPlaying.value = false
-        reject(new Error('Audio playback failed'))
+      source.start(startTime)
+    })
+  }
+
+  function waitForScheduledPcmPlayback(
+    audioContext: AudioContext,
+    playbackEndTime: number,
+    sourceEndPromises: Promise<void>[],
+    signal: AbortSignal,
+  ): Promise<void> {
+    if (signal.aborted) return Promise.resolve()
+
+    const delayMs = Math.max(
+      STREAM_PLAYBACK_GUARD_MS,
+      (playbackEndTime - audioContext.currentTime) * 1000 + STREAM_PLAYBACK_GUARD_MS,
+    )
+
+    return new Promise((resolve) => {
+      let settled = false
+      const finish = () => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timer)
+        resolve()
       }
-      currentAudio.play().catch((error) => {
-        cleanupAudio()
-        isPlaying.value = false
-        reject(error)
+      const timer = window.setTimeout(finish, delayMs)
+      signal.addEventListener('abort', finish, { once: true })
+      Promise.allSettled(sourceEndPromises).then(finish)
+    })
+  }
+
+  function base64ToUint8Array(base64: string): Uint8Array {
+    const binary = window.atob(base64.replace(/\s/g, ''))
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i)
+    }
+    return bytes
+  }
+
+  async function playAudioBlob(blob: Blob, signal: AbortSignal): Promise<void> {
+    if (signal.aborted) return
+
+    isSpeechLoading.value = false
+    isPlaying.value = true
+    const audioUrl = URL.createObjectURL(blob)
+    const audio = new Audio(audioUrl)
+    currentAudioUrl = audioUrl
+    currentAudio = audio
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false
+
+      const cleanup = () => {
+        signal.removeEventListener('abort', handleAbort)
+        audio.onended = null
+        audio.onerror = null
+        audio.pause()
+        audio.removeAttribute('src')
+
+        if (currentAudio === audio) {
+          currentAudio = null
+        }
+        if (currentAudioUrl === audioUrl) {
+          currentAudioUrl = null
+        }
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      const finish = (error?: unknown) => {
+        if (settled) return
+        settled = true
+        const ownsCurrentAudio = currentAudio === audio
+        cleanup()
+        if (ownsCurrentAudio) {
+          isPlaying.value = false
+        }
+
+        if (error) {
+          reject(error)
+        } else {
+          resolve()
+        }
+      }
+
+      const handleAbort = () => finish()
+
+      signal.addEventListener('abort', handleAbort, { once: true })
+      audio.onended = () => finish()
+      audio.onerror = () => {
+        finish(signal.aborted ? undefined : new Error('Audio playback failed'))
+      }
+      audio.play().catch((error) => {
+        finish(signal.aborted ? undefined : error)
       })
     })
   }
@@ -440,14 +740,46 @@ export const useVoiceStore = defineStore('voice', () => {
   }
 
   function cleanupAudio() {
+    currentAudioSources.forEach((source) => {
+      try {
+        source.stop()
+      } catch {
+        // Source may have already ended.
+      }
+    })
+    currentAudioSources = []
+    if (currentAudioContext) {
+      currentAudioContext.close().catch(() => {})
+      currentAudioContext = null
+    }
     if (currentAudio) {
+      currentAudio.onended = null
+      currentAudio.onerror = null
       currentAudio.pause()
-      currentAudio.src = ''
+      currentAudio.removeAttribute('src')
       currentAudio = null
     }
     if (currentAudioUrl) {
       URL.revokeObjectURL(currentAudioUrl)
       currentAudioUrl = null
+    }
+  }
+
+  function cleanupPcmStream(audioContext: AudioContext, stopSources: boolean) {
+    const ownedSources = currentAudioSources.filter((source) => source.context === audioContext)
+    if (stopSources) {
+      ownedSources.forEach((source) => {
+        try {
+          source.stop()
+        } catch {
+          // Source may have already ended.
+        }
+      })
+    }
+    currentAudioSources = currentAudioSources.filter((source) => source.context !== audioContext)
+    audioContext.close().catch(() => {})
+    if (currentAudioContext === audioContext) {
+      currentAudioContext = null
     }
   }
 

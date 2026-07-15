@@ -9,6 +9,9 @@ describe('config', () => {
     assert.equal(config.port, 3001);
     assert.deepEqual(config.corsOrigins, ['*']);
     assert.equal(config.jsonBodyLimit, '2mb');
+    assert.equal(config.defaultModelProvider, 'deepseek');
+    assert.equal(config.defaultModelBaseUrl, 'https://api.deepseek.com');
+    assert.equal(config.defaultModel, 'deepseek-v4-flash');
     assert.equal(config.rateLimit.windowMs, 60_000);
     assert.equal(config.rateLimit.max, 120);
     assert.equal(config.chat.maxMessages, 40);
@@ -26,6 +29,9 @@ describe('config', () => {
       RATE_LIMIT_MAX: '5',
       CHAT_MAX_MESSAGES: '12',
       CHAT_MAX_CONTEXT_CHARS: '4096',
+      DEFAULT_MODEL_PROVIDER: 'zhipu',
+      DEFAULT_MODEL: 'glm-5.2',
+      MODEL_BASE_URL: 'https://open.bigmodel.cn/api/paas/v4',
       TTS_TEXT_MAX_CHARS: '512',
       STT_AUDIO_MAX_BYTES: '2048',
     });
@@ -34,6 +40,9 @@ describe('config', () => {
     assert.deepEqual(config.corsOrigins, ['https://example.com', 'https://app.example.com']);
     assert.equal(config.rateLimit.windowMs, 1000);
     assert.equal(config.rateLimit.max, 5);
+    assert.equal(config.defaultModelProvider, 'zhipu');
+    assert.equal(config.defaultModelBaseUrl, 'https://open.bigmodel.cn/api/paas/v4');
+    assert.equal(config.defaultModel, 'glm-5.2');
     assert.equal(config.chat.maxMessages, 12);
     assert.equal(config.chat.maxContextChars, 4096);
     assert.equal(config.tts.maxTextChars, 512);

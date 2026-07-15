@@ -1,6 +1,17 @@
 export const defaultPreferences = {
+  modelProvider: 'deepseek',
   model: 'deepseek-v4-flash',
   baseURL: 'https://api.deepseek.com',
+  providers: {
+    deepseek: {
+      model: 'deepseek-v4-flash',
+      baseURL: 'https://api.deepseek.com',
+    },
+    zhipu: {
+      model: 'glm-5.2',
+      baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+    },
+  },
   stt: {
     provider: 'faster-whisper',
     localModel: 'base',
@@ -12,10 +23,18 @@ export const defaultPreferences = {
     edgeRate: '+0%',
     edgePitch: '+0Hz',
     edgeVolume: '+0%',
+    edgeEmotionEnabled: 'false',
+    edgeEmotionStyle: 'auto',
     elevenLabsVoiceId: 'JBFqnCBsd6RMkjVDRZzb',
     elevenLabsModelId: 'eleven_multilingual_v2',
     elevenLabsStability: '0.45',
     elevenLabsSimilarityBoost: '0.75',
     elevenLabsStyle: '0.35',
+    zhipuVoice: 'tongtong',
+    zhipuSpeed: '1.2',
+    zhipuVolume: '1',
+    zhipuEmotionEnabled: 'false',
+    zhipuEmotionStyle: 'auto',
+    zhipuEmotionGranularity: 'sentence',
   },
 } as const;

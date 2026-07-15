@@ -5,6 +5,7 @@ import { buildSystemPrompt } from '../prompt/builder.js';
 import { buildMessagesContext } from '../prompt/context.js';
 import { appConfig } from '../config.js';
 import { createTimeoutSignal } from '../utils/timeout.js';
+import { buildChatCompletionsUrl, resolveModelBaseURL, resolveModelName, resolveModelProvider } from '../utils/modelProvider.js';
 import logger from '../logger.js';
 import '../middleware/apiKey.js';
 import type { ChatStreamRequest, SSEStartEvent, SSEDeltaEvent, SSEDoneEvent, SSEErrorEvent, AppErrorResponse } from '@ai-chat/shared';
@@ -29,6 +30,8 @@ const chatStreamSchema = z.object({
   })).default([]),
   input: z.string().min(1).max(appConfig.chat.maxInputChars),
   model: z.string().min(1).max(120).optional(),
+  provider: z.enum(['deepseek', 'zhipu']).optional(),
+  baseURL: z.string().url().max(300).optional(),
   thinking: z.object({
     type: z.enum(['disabled', 'enabled']),
     reasoning_effort: z.enum(['low', 'medium', 'high']).optional(),
@@ -37,9 +40,9 @@ const chatStreamSchema = z.object({
 
 router.post('/api/chat/completions/stream', async (req: Request, res: Response) => {
   try {
-    const apiKey = req.deepseekApiKey;
+    const apiKey = req.modelApiKey || req.deepseekApiKey;
     if (!apiKey) {
-      const err: AppErrorResponse = { ok: false, code: 'API_KEY_MISSING', message: 'Missing X-DeepSeek-Api-Key header' };
+      const err: AppErrorResponse = { ok: false, code: 'API_KEY_MISSING', message: 'Missing X-Model-Api-Key header' };
       res.status(400).json(err);
       return;
     }
@@ -51,7 +54,7 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
       return;
     }
     const body = parsedBody.data as ChatStreamRequest;
-    const { conversationId, character, messages, input, model, thinking } = body;
+    const { conversationId, character, messages, input, model, provider, baseURL: requestBaseURL, thinking } = body;
 
     const messageId = uuidv4();
 
@@ -74,8 +77,9 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
       maxContextChars: appConfig.chat.maxContextChars,
     });
 
-    const baseURL = appConfig.deepseekBaseUrl;
-    const targetModel = model || appConfig.defaultDeepseekModel;
+    const resolvedProvider = resolveModelProvider(provider);
+    const baseURL = resolveModelBaseURL(provider, requestBaseURL);
+    const targetModel = resolveModelName(provider, model);
 
     const abortController = new AbortController();
     abortControllers.set(messageId, abortController);
@@ -93,7 +97,7 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
     });
 
     try {
-      logger.info({ targetModel, messageLength: chatMessages.length }, 'Calling DeepSeek chat completions...');
+      logger.info({ provider: resolvedProvider, baseURL, targetModel, messageLength: chatMessages.length }, 'Calling model chat completions...');
 
       const requestBody: Record<string, any> = {
         model: targetModel,
@@ -110,7 +114,7 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
       }
 
       const timeout = createTimeoutSignal(appConfig.chat.timeoutMs, abortController.signal);
-      const response = await fetch(`${baseURL}/v1/chat/completions`, {
+      const response = await fetch(buildChatCompletionsUrl(baseURL), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,23 +126,23 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        logger.error({ status: response.status, errorText }, 'DeepSeek API error');
+        logger.error({ provider: resolvedProvider, status: response.status, errorText }, 'Model API error');
 
         let code: string;
         let message: string;
 
         if (response.status === 401 || response.status === 403) {
-          code = 'DEEPSEEK_AUTH_FAILED';
+          code = 'MODEL_AUTH_FAILED';
           message = 'Authentication failed — invalid API key';
         } else if (response.status === 429) {
-          code = 'DEEPSEEK_RATE_LIMITED';
+          code = 'MODEL_RATE_LIMITED';
           message = 'Rate limited — please try again later';
         } else if (response.status === 402) {
-          code = 'DEEPSEEK_INSUFFICIENT_BALANCE';
+          code = 'MODEL_INSUFFICIENT_BALANCE';
           message = 'Insufficient balance';
         } else {
           code = 'UNKNOWN_ERROR';
-          message = `DeepSeek API error (${response.status}): ${errorText.slice(0, 200)}`;
+          message = `Model API error (${response.status}): ${errorText.slice(0, 200)}`;
         }
 
         const errorEvent: SSEErrorEvent = { code: code as any, message };
@@ -148,7 +152,7 @@ router.post('/api/chat/completions/stream', async (req: Request, res: Response) 
         return;
       }
 
-      // Read the SSE stream from DeepSeek using ReadableStream
+      // Read the SSE stream from the OpenAI-compatible provider.
       const reader = response.body?.getReader();
       if (!reader) {
         throw new Error('Response body is not readable');

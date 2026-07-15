@@ -3,6 +3,7 @@ export const projectInfo = {
   positioning: '轻量、本地优先、BYOK 的个人 AI 聊天工具。',
   capabilities: [
     '角色化聊天与流式回复',
+    '支持 DeepSeek 与智谱大模型（GLM）BYOK 接入',
     '本地 IndexedDB 保存角色、会话和消息',
     '可选本地 faster-whisper / FunASR 语音转文字',
     '浏览器、Edge TTS 和 ElevenLabs 朗读',

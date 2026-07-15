@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import logger from '../logger.js';
 import { appConfig } from '../config.js';
+import { resolveModelBaseURL, resolveModelName, resolveModelProvider } from '../utils/modelProvider.js';
 import type { ProactiveTickRequest, ProactiveTickResponse, AppErrorResponse } from '@ai-chat/shared';
 
 const router = Router();
@@ -74,16 +75,19 @@ const proactiveTickSchema = z.object({
     createdAt: z.string().optional(),
   })).default([]),
   lastUserActiveAt: z.string().min(1),
+  model: z.string().min(1).max(120).optional(),
+  provider: z.enum(['deepseek', 'zhipu']).optional(),
+  baseURL: z.string().url().max(300).optional(),
 });
 
 router.post('/api/proactive/tick', async (req: Request, res: Response) => {
   try {
-    const apiKey = req.deepseekApiKey;
+    const apiKey = req.modelApiKey || req.deepseekApiKey;
     if (!apiKey) {
       const err: AppErrorResponse = {
         ok: false,
         code: 'API_KEY_MISSING',
-        message: 'Missing X-DeepSeek-Api-Key header',
+        message: 'Missing X-Model-Api-Key header',
       };
       res.status(400).json(err);
       return;
@@ -100,7 +104,7 @@ router.post('/api/proactive/tick', async (req: Request, res: Response) => {
       return;
     }
     const body = parsedBody.data as ProactiveTickRequest;
-    const { conversationId, character, recentMessages, lastUserActiveAt } = body;
+    const { conversationId, character, recentMessages, lastUserActiveAt, model, provider, baseURL: requestBaseURL } = body;
 
     const proactive = character.proactive;
 
@@ -187,8 +191,9 @@ router.post('/api/proactive/tick', async (req: Request, res: Response) => {
     }
 
     // All checks passed — generate a proactive message
-    const baseURL = appConfig.deepseekBaseUrl;
-    const defaultModel = appConfig.defaultDeepseekModel;
+    const resolvedProvider = resolveModelProvider(provider);
+    const baseURL = resolveModelBaseURL(provider, requestBaseURL);
+    const targetModel = resolveModelName(provider, model);
 
     const client = new OpenAI({
       baseURL,
@@ -211,7 +216,7 @@ ${recentMessages.slice(-10).map((m) => `${m.role}: ${m.content}`).join('\n')}
 Generate a natural, in-character proactive message to restart the conversation. Keep it warm, contextual, and engaging. Do NOT use any prefix like "${character.name}:" or "Proactive:" — just output the message content directly.`;
 
     const completion = await client.chat.completions.create({
-      model: defaultModel,
+      model: targetModel,
       messages: [{ role: 'user', content: proactivePrompt }],
       max_tokens: 512,
       temperature: 0.8,
@@ -234,7 +239,7 @@ Generate a natural, in-character proactive message to restart the conversation. 
       },
     };
 
-    logger.info({ conversationId, messageId, contentLength: content.length }, 'Proactive message generated');
+    logger.info({ provider: resolvedProvider, targetModel, conversationId, messageId, contentLength: content.length }, 'Proactive message generated');
     res.json(response);
 
   } catch (error: any) {
@@ -245,10 +250,10 @@ Generate a natural, in-character proactive message to restart the conversation. 
     let message: string = error.message || 'Failed to generate proactive message';
 
     if (status === 401 || status === 403) {
-      code = 'DEEPSEEK_AUTH_FAILED';
+      code = 'MODEL_AUTH_FAILED';
       message = 'Authentication failed — invalid API key';
     } else if (status === 429) {
-      code = 'DEEPSEEK_RATE_LIMITED';
+      code = 'MODEL_RATE_LIMITED';
       message = 'Rate limited — please try again later';
     }
 

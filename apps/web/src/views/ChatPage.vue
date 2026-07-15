@@ -44,7 +44,7 @@
         <div v-if="!apiKeyStore.apiKey" class="input-hint">
           请先在
           <router-link to="/settings">设置</router-link>
-          页面填写 DeepSeek API Key
+          页面填写模型 API Key
         </div>
       </div>
     </div>
@@ -238,8 +238,7 @@ async function requestAssistantReply(input: string, currentUserMessageId: string
         proactive: character.proactive,
       },
       messages: recentMessages,
-      input,
-      model: localStorage.getItem('defaultModel') || 'deepseek-v4-flash'
+      input
     }, (delta) => {
       streamedContent += delta
       messageStore.updateMessage(assistantMessage.id, { content: streamedContent }).catch(() => {})
@@ -286,6 +285,10 @@ async function handleAutoSpeak(messageId: string, content: string) {
   speakingMessageId.value = messageId
   try {
     await voiceStore.speakText(content, characterStore.currentCharacter?.tts)
+  } catch (err: any) {
+    if (!isStreamAbortError(err)) {
+      apiKeyStore.error = err.message || '语音朗读失败'
+    }
   } finally {
     speakingMessageId.value = null
   }
@@ -361,6 +364,10 @@ async function handlePlayVoice(message: Message) {
   speakingMessageId.value = message.id
   try {
     await voiceStore.speakText(message.content, characterStore.currentCharacter?.tts)
+  } catch (err: any) {
+    if (!isStreamAbortError(err)) {
+      apiKeyStore.error = err.message || '语音朗读失败'
+    }
   } finally {
     speakingMessageId.value = null
   }
