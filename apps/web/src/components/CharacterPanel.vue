@@ -29,7 +29,7 @@
       <div v-else style="font-size:12px;color:var(--text-muted);text-align:center;padding:16px">
         暂无角色
       </div>
-      <ElButton style="width:100%;margin-top:8px" @click="router.push('/characters')">
+      <ElButton class="panel-action" @click="router.push('/characters')">
         管理角色
       </ElButton>
     </div>
@@ -56,7 +56,7 @@
             <span class="tag" v-for="h in character.hobbies.slice(0,5)" :key="h">{{ h }}</span>
           </div>
         </div>
-        <ElButton style="width:100%;margin-top:12px" @click="emit('editCharacter')">
+        <ElButton class="panel-action panel-action-spaced" @click="emit('editCharacter')">
           编辑角色
         </ElButton>
       </div>
@@ -106,3 +106,20 @@ async function handleSwitchCharacter(charId: string) {
   }
 }
 </script>
+
+<style scoped>
+.panel-action {
+  width: 100%;
+  margin-top: 8px;
+  --el-button-bg-color: #14213c;
+  --el-button-border-color: #3a4e76;
+  --el-button-text-color: #cbd3e2;
+  --el-button-hover-bg-color: #1c2b4d;
+  --el-button-hover-border-color: #716aff;
+  --el-button-hover-text-color: #fff;
+}
+
+.panel-action-spaced {
+  margin-top: 12px;
+}
+</style>

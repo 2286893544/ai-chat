@@ -5,6 +5,18 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'home',
+      component: () => import('../views/HomePage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/guide',
+      name: 'guide',
+      component: () => import('../views/GuidePage.vue'),
+      meta: { layout: 'public' },
+    },
+    {
+      path: '/chat',
       name: 'chat',
       component: () => import('../views/ChatPage.vue'),
     },

@@ -1098,7 +1098,7 @@ async function handleClearAll() {
 }
 
 .settings-hint {
-  margin-top: -4px;
+  margin: 8px 0 0;
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;

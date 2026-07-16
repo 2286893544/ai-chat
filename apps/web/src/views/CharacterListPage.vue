@@ -91,7 +91,7 @@ async function selectCharacter(charId: string) {
       })
     }
   }
-  router.push('/')
+  router.push('/chat')
 }
 
 function openCreateDialog() {

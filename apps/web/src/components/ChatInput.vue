@@ -22,7 +22,7 @@
         circle
         text
       >
-        {{ isRecording ? '⏹' : '🎤' }}
+        <ElIcon><VideoPause v-if="isRecording" /><Mic v-else /></ElIcon>
       </ElButton>
 
       <!-- Stop / Send -->
@@ -34,7 +34,7 @@
         circle
         text
       >
-        ⏹
+        <ElIcon><VideoPause /></ElIcon>
       </ElButton>
       <ElButton
         v-else
@@ -44,7 +44,7 @@
         title="发送"
         circle
       >
-        ↑
+        <ElIcon><Promotion /></ElIcon>
       </ElButton>
     </div>
   </div>
@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { Mic, Promotion, VideoPause } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   disabled?: boolean

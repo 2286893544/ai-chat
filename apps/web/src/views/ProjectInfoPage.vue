@@ -53,11 +53,13 @@ import { projectInfo } from '../local-data/projectInfo'
 .info-layout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
+  gap: 28px;
+  margin-top: 8px;
 }
 
 .info-section {
-  min-height: 220px;
+  min-height: 180px;
+  padding: 16px 18px;
 }
 
 .info-list {

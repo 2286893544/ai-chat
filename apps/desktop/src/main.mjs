@@ -126,8 +126,6 @@ async function createMainWindow() {
     show: false,
     backgroundColor: '#1a1a2e',
     title: 'AI Chat',
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 18 },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -156,7 +154,7 @@ async function createMainWindow() {
     }
   })
 
-  await window.loadURL(appOrigin)
+  await window.loadURL(`${appOrigin}/chat`)
 }
 
 app.on('second-instance', () => {

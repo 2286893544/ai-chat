@@ -1,9 +1,9 @@
 <template>
   <div class="message-list" ref="listRef">
     <div v-if="messages.length === 0 && !isStreaming" class="message-empty">
-      <div class="message-empty-icon">💬</div>
+      <div class="message-empty-icon"><ElIcon><ChatDotRound /></ElIcon></div>
       <h3>开始对话</h3>
-      <p>在下方的输入框中发送一条消息，AI 角色会以设定好的性格和语气回复你</p>
+      <p>发一条消息，小夏会按照你设定的性格、语气和边界回应。</p>
     </div>
 
     <div
@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
+import { ChatDotRound } from '@element-plus/icons-vue'
 import VoiceMessage from './VoiceMessage.vue'
 import type { Message } from '@ai-chat/shared'
 

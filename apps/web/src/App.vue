@@ -1,9 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  ChatDotRound,
+  CircleCheckFilled,
+  Close,
+  HomeFilled,
+  InfoFilled,
+  Menu,
+  Setting,
+  User,
+  WarningFilled,
+} from '@element-plus/icons-vue'
+import BrandMark from './components/BrandMark.vue'
+import { useApiKeyStore } from './stores/apiKey'
 import { useCharacterStore } from './stores/character'
 import { useConversationStore } from './stores/conversation'
-import { useApiKeyStore } from './stores/apiKey'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,6 +24,8 @@ const conversationStore = useConversationStore()
 const apiKeyStore = useApiKeyStore()
 
 const sidebarOpen = ref(false)
+const publicShellRef = ref<HTMLElement>()
+const isPublicLayout = computed(() => route.meta.layout === 'public')
 
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
@@ -23,100 +37,87 @@ function navigateTo(path: string) {
 }
 
 function isActive(path: string): boolean {
-  if (path === '/') return route.path === '/'
-  return route.path.startsWith(path)
+  return route.path === path || (path !== '/chat' && route.path.startsWith(path))
 }
 
 onMounted(async () => {
   await characterStore.loadCharacters()
   await conversationStore.loadConversations()
 })
+
+watch(() => route.fullPath, async () => {
+  await nextTick()
+  if (!isPublicLayout.value) return
+
+  if (route.hash) {
+    document.querySelector(route.hash)?.scrollIntoView({ block: 'start' })
+    return
+  }
+
+  publicShellRef.value?.scrollTo({ top: 0, left: 0 })
+})
 </script>
 
 <template>
-  <div class="app-layout">
-    <!-- Mobile overlay -->
-    <div
-      v-if="sidebarOpen"
-      class="sidebar-overlay"
-      @click="sidebarOpen = false"
-    ></div>
+  <div v-if="isPublicLayout" ref="publicShellRef" class="public-shell">
+    <router-view />
+  </div>
 
-    <!-- Sidebar -->
+  <div v-else class="app-layout product-shell">
+    <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false"></div>
+
     <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
       <div class="sidebar-header">
-        <div class="app-logo">
-          <span class="logo-icon">✦</span>
-          <span class="logo-text">AI 聊天</span>
-        </div>
-        <ElButton class="sidebar-close" text circle @click="sidebarOpen = false">
-          ✕
+        <RouterLink to="/" class="sidebar-brand" aria-label="返回官网">
+          <BrandMark compact />
+        </RouterLink>
+        <ElButton class="sidebar-close" text circle aria-label="关闭导航" @click="sidebarOpen = false">
+          <ElIcon><Close /></ElIcon>
         </ElButton>
       </div>
 
-      <nav class="sidebar-nav">
-        <ElButton
-          class="nav-item"
-          text
-          :class="{ active: isActive('/') }"
-          @click="navigateTo('/')"
-        >
-          <span class="nav-icon">💬</span>
+      <nav class="sidebar-nav" aria-label="应用导航">
+        <ElButton class="nav-item" text :class="{ active: isActive('/chat') }" @click="navigateTo('/chat')">
+          <ElIcon class="nav-icon"><ChatDotRound /></ElIcon>
           <span class="nav-label">聊天</span>
         </ElButton>
-        <ElButton
-          class="nav-item"
-          text
-          :class="{ active: isActive('/characters') }"
-          @click="navigateTo('/characters')"
-        >
-          <span class="nav-icon">👤</span>
+        <ElButton class="nav-item" text :class="{ active: isActive('/characters') }" @click="navigateTo('/characters')">
+          <ElIcon class="nav-icon"><User /></ElIcon>
           <span class="nav-label">角色管理</span>
         </ElButton>
-        <ElButton
-          class="nav-item"
-          text
-          :class="{ active: isActive('/settings') }"
-          @click="navigateTo('/settings')"
-        >
-          <span class="nav-icon">⚙️</span>
+        <ElButton class="nav-item" text :class="{ active: isActive('/settings') }" @click="navigateTo('/settings')">
+          <ElIcon class="nav-icon"><Setting /></ElIcon>
           <span class="nav-label">设置</span>
         </ElButton>
-        <ElButton
-          class="nav-item"
-          text
-          :class="{ active: isActive('/project') }"
-          @click="navigateTo('/project')"
-        >
-          <span class="nav-icon">ⓘ</span>
+        <ElButton class="nav-item" text :class="{ active: isActive('/project') }" @click="navigateTo('/project')">
+          <ElIcon class="nav-icon"><InfoFilled /></ElIcon>
           <span class="nav-label">项目说明</span>
         </ElButton>
       </nav>
 
       <div class="sidebar-footer">
-        <div v-if="!apiKeyStore.hasKey" class="api-key-warning">
-          <span class="warning-dot">⚠️</span>
+        <RouterLink class="site-return" to="/">
+          <ElIcon><HomeFilled /></ElIcon>
+          <span>返回官网</span>
+        </RouterLink>
+        <div v-if="!apiKeyStore.hasKey" class="api-key-state warning">
+          <ElIcon><WarningFilled /></ElIcon>
           <span>未设置 API Key</span>
         </div>
-        <div v-else class="api-key-status">
-          <span class="status-dot"></span>
-          <span>API Key 已设置</span>
+        <div v-else class="api-key-state ready">
+          <ElIcon><CircleCheckFilled /></ElIcon>
+          <span>本地配置已就绪</span>
         </div>
       </div>
     </aside>
 
-    <!-- Main content -->
     <div class="main-area">
-      <!-- Mobile header -->
       <header class="mobile-header">
-        <ElButton class="hamburger" text circle @click="toggleSidebar">
-          <span></span>
-          <span></span>
-          <span></span>
+        <ElButton class="hamburger" text circle aria-label="打开导航" @click="toggleSidebar">
+          <ElIcon><Menu /></ElIcon>
         </ElButton>
-        <span class="mobile-title">AI 智能聊天</span>
+        <BrandMark compact />
       </header>
-
       <main class="main-content">
         <router-view />
       </main>
@@ -125,9 +126,22 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.public-shell {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #071124;
+}
+
+.product-shell {
+  background: #0b1428;
+}
+
 .app-layout {
   display: flex;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -136,190 +150,154 @@ onMounted(async () => {
 }
 
 .sidebar {
-  width: 240px;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
+  width: 252px;
+  min-width: 252px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  transition: transform 0.3s ease;
+  overflow: hidden;
+  border-right: 1px solid #263757;
+  background: #101d38;
 }
 
 .sidebar-header {
-  padding: 20px 16px;
+  min-height: 78px;
+  padding: 18px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #263757;
 }
 
-.app-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.logo-icon {
-  font-size: 24px;
-  color: var(--accent);
-}
-
-.logo-text {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
+.sidebar-brand {
+  color: inherit;
 }
 
 .sidebar-close {
   display: none;
-  background: none;
-  border: none;
   color: var(--text-secondary);
-  font-size: 18px;
-  cursor: pointer;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 12px 8px;
+  padding: 18px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  font-size: 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
   width: 100%;
-  text-align: left;
+  min-height: 44px;
+  padding: 0 13px;
+  justify-content: flex-start;
+  border-radius: 7px;
+  color: #aeb8ce;
+  font-size: 14px;
 }
 
 .nav-item :deep(> span) {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 .nav-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: #182746;
+  color: #fff;
 }
 
 .nav-item.active {
-  background: var(--accent-bg);
-  color: var(--accent);
-  font-weight: 600;
+  background: #253665;
+  color: #9e97ff;
+  font-weight: 650;
 }
 
 .nav-icon {
+  width: 20px;
+  flex: none;
   font-size: 18px;
-  width: 24px;
-  text-align: center;
 }
 
 .sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid var(--border-color);
+  padding: 14px 14px 18px;
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #263757;
 }
 
-.api-key-warning,
-.api-key-status {
+.site-return,
+.api-key-state {
+  min-height: 42px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  padding: 8px 10px;
+  gap: 9px;
   border-radius: 6px;
+  font-size: 13px;
 }
 
-.api-key-warning {
-  background: rgba(255, 193, 7, 0.1);
-  color: #f0ad4e;
+.site-return {
+  color: #aeb8ce;
 }
 
-.api-key-status {
-  background: rgba(76, 175, 80, 0.1);
-  color: #66bb6a;
+.site-return:hover {
+  background: #182746;
+  color: #fff;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #66bb6a;
-  display: inline-block;
+.api-key-state.warning {
+  border: 1px solid rgba(255, 197, 61, 0.22);
+  background: rgba(255, 197, 61, 0.08);
+  color: #f3c75a;
+}
+
+.api-key-state.ready {
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  background: rgba(78, 205, 196, 0.08);
+  color: var(--success);
 }
 
 .main-area {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-width: 0;
-}
-
-.mobile-header {
-  display: none;
-  padding: 12px 16px;
-  background: var(--bg-sidebar);
-  border-bottom: 1px solid var(--border-color);
-  align-items: center;
-  gap: 12px;
-}
-
-.hamburger {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.hamburger :deep(> span) {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.hamburger span {
-  display: block;
-  width: 20px;
-  height: 2px;
-  background: var(--text-primary);
-  border-radius: 1px;
-}
-
-.mobile-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
 }
 
 .main-content {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
+}
+
+.mobile-header {
+  display: none;
+  min-height: 62px;
+  padding: 0 14px;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #263757;
+  background: #101d38;
+}
+
+.hamburger {
+  color: #fff;
+  font-size: 21px;
 }
 
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
+    inset: 0 auto 0 0;
     z-index: 100;
+    width: min(82vw, 286px);
+    min-width: 0;
     transform: translateX(-100%);
+    transition: transform 0.24s ease;
   }
 
   .sidebar.sidebar-open {
@@ -327,15 +305,15 @@ onMounted(async () => {
   }
 
   .sidebar-close {
-    display: block;
+    display: inline-flex;
   }
 
   .sidebar-overlay {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
     z-index: 99;
+    background: rgba(2, 8, 20, 0.72);
   }
 
   .mobile-header {

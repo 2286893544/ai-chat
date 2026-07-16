@@ -4,14 +4,19 @@
       <!-- Chat header -->
       <div class="chat-header" v-if="conversationStore.currentConversation">
         <div class="chat-header-left">
-          <ElButton class="input-btn menu-btn" text circle @click="sidebarOpen = true" v-if="isMobile">☰</ElButton>
           <div class="chat-header-info">
             <span class="chat-header-name">{{ characterStore.currentCharacter?.name || 'AI 聊天' }}</span>
-            <span class="chat-header-status" v-if="isStreaming">正在输入...</span>
+            <span class="chat-header-description">{{ characterStore.currentCharacter?.background || '你的个人 AI 对话空间' }}</span>
           </div>
         </div>
         <div class="chat-header-actions">
-          <ElButton class="input-btn" text circle @click="showMobilePanel = !showMobilePanel" v-if="isMobile" title="角色设置">⚙</ElButton>
+          <span class="chat-header-status" :class="{ streaming: isStreaming }">
+            <i></i>{{ isStreaming ? '正在回复' : '本地会话' }}
+          </span>
+          <RouterLink class="guide-link" to="/guide">使用教程</RouterLink>
+          <ElButton class="input-btn" text circle @click="showMobilePanel = !showMobilePanel" v-if="isMobile" title="角色设置">
+            <ElIcon><Setting /></ElIcon>
+          </ElButton>
         </div>
       </div>
 
@@ -82,6 +87,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { Setting } from '@element-plus/icons-vue'
 import { useApiKeyStore } from '../stores/apiKey'
 import { useCharacterStore } from '../stores/character'
 import { useConversationStore } from '../stores/conversation'
@@ -100,7 +106,6 @@ const messageStore = useMessageStore()
 const voiceStore = useVoiceStore()
 
 const messageListRef = ref()
-const sidebarOpen = ref(false)
 const showMobilePanel = ref(false)
 const isStreaming = ref(false)
 const isMobile = ref(window.innerWidth <= 768)
@@ -504,9 +509,10 @@ async function runProactiveTick() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  min-height: 70px;
+  padding: 11px 22px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-secondary);
+  background: #0e1a33;
 }
 
 .chat-header-left {
@@ -515,25 +521,77 @@ async function runProactiveTick() {
   gap: 12px;
 }
 
+.chat-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .chat-header-name {
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .chat-header-status {
-  font-size: 12px;
-  color: var(--accent);
-  margin-left: 8px;
+  padding: 6px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  border-radius: 999px;
+  background: rgba(78, 205, 196, 0.07);
+  color: #71d1c1;
+  font-size: 11px;
+}
+
+.chat-header-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.chat-header-status.streaming {
+  border-color: rgba(139, 131, 255, 0.28);
+  background: rgba(108, 99, 255, 0.1);
+  color: #aaa5ff;
+}
+
+.chat-header-status.streaming i {
+  background: #938cff;
   animation: pulse-text 1.5s infinite;
+}
+
+.chat-header-description {
+  max-width: 360px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guide-link {
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: #8e9bb4;
+  font-size: 11px;
+}
+
+.guide-link:hover {
+  background: #182744;
+  color: #fff;
 }
 
 @keyframes pulse-text {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
-}
-
-.menu-btn {
-  font-size: 20px;
 }
 
 .input-hint {
@@ -562,5 +620,21 @@ async function runProactiveTick() {
   width: 280px;
   background: var(--bg-secondary);
   overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .chat-header {
+    min-height: 62px;
+    padding: 8px 12px;
+  }
+
+  .chat-header-description,
+  .guide-link {
+    display: none;
+  }
+
+  .chat-header-status {
+    padding: 5px 8px;
+  }
 }
 </style>
