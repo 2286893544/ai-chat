@@ -1,0 +1,73 @@
+apps/web/src/components/MessageList.vue
+  s_47832ac00a9ace::t_500663ab423b00 4,6,81
+apps/web/src/components/ChatInput.vue
+  s_47832ac00a9ace::t_500663ab423b00 25,37,47,62
+apps/desktop/src/main.mjs
+  s_47832ac00a9ace::t_955e80fc08fefa 157
+apps/web/src/components/BrandMark.vue
+  s_47832ac00a9ace::t_955e80fc08fefa 1-56
+apps/web/src/views/ProjectInfoPage.vue
+  s_47832ac00a9ace::t_605c3703072406 56-57
+  s_be14a235feac50::t_7570745eefbbf2 61-62
+apps/web/src/App.vue
+  s_47832ac00a9ace::t_ca3257edd7e27e 2,27,47-58,62
+  s_47832ac00a9ace::t_c060d8743603af 4-16,28,40,63-68,71-75,79-81,84-85,88-89,92-93,99-104,107-109,116-117,119,129-140,143-144,153-155,158-160,164-165,169,172-173,183,186,191-196,200,203-204,208-209,213-215,219-220,225-228,231-234,237,239,242-243,246-248,251-260,265,269-274,279-280,282-284,288-289,295,297-298,300,308,316
+apps/web/src/views/GuidePage.vue
+  s_47832ac00a9ace::t_6b49021c858fa1 1-882,891-945
+  s_47832ac00a9ace::t_b4d4c35fc1294b 883-890
+apps/web/src/views/CharacterListPage.vue
+  s_47832ac00a9ace::t_500663ab423b00 94
+apps/web/src/components/MarketingHeader.vue
+  s_47832ac00a9ace::t_955e80fc08fefa 1-167
+apps/web/src/views/ChatPage.vue
+  s_47832ac00a9ace::t_500663ab423b00 9,13-19,512-513,515,524-529,531-532,536-561,565-591,624-639
+  s_47832ac00a9ace::t_4365782750ec94 90
+apps/web/src/components/CharacterPanel.vue
+  s_47832ac00a9ace::t_2a5d25696d639b 32,59,109-125
+apps/web/src/styles/main.css
+  s_47832ac00a9ace::t_25754823881f77 4-15,23-25,224,270,278,282-284,331,348-358,362-363,369-370,392-393,403-404,409,548,550,559-560,604,665,679,768-769,1004
+  s_47832ac00a9ace::t_57ac118ce0d320 101-114
+  s_47832ac00a9ace::t_605c3703072406 1037,1086,1206-1207
+apps/web/src/views/SettingsPage.vue
+  s_be14a235feac50::t_7570745eefbbf2 1101
+apps/web/package.json
+  s_47832ac00a9ace::t_955e80fc08fefa 13
+apps/web/src/router/index.ts
+  s_47832ac00a9ace::t_955e80fc08fefa 8-19
+apps/web/src/views/HomePage.vue
+  s_47832ac00a9ace::t_d156d6c266e543 1005
+  s_47832ac00a9ace::t_f1224336ee5400 1-172,174-1004,1007-1031,1033-1125
+  s_47832ac00a9ace::t_b4d4c35fc1294b 1006
+  s_47832ac00a9ace::t_a6043617011c6a 173
+  s_47832ac00a9ace::t_87dcd0b7d97416 1032
+design-qa.md
+  s_47832ac00a9ace::t_92a2ffea56bbce 2,8,10,14,16,19,21,31,33,39,41,47,49,52,54,62
+  s_47832ac00a9ace::t_666b3afe86a903 63
+  s_47832ac00a9ace::t_a6043617011c6a 1,3-7,9,11-13,15,17-18,20,22-30,32,34-38,40,42-46,48,50-51,53,55-61
+pnpm-lock.yaml
+  s_47832ac00a9ace::t_6e585387f1408d 90-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "6023c08e307905cea7ddab68cbd66fff9bcfb3fe",
+  "prompts": {},
+  "sessions": {
+    "s_47832ac00a9ace": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f698a-0abd-7641-a23f-06d7d50dadbe",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    },
+    "s_be14a235feac50": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f69b5-69c4-74f0-9e3a-4d86c8fcef7c",
+        "model": "gpt-5.5"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    }
+  }
+}
