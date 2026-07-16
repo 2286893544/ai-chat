@@ -1,3 +1,6 @@
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
 export interface AppConfig {
   port: number;
   corsOrigins: string[];
@@ -21,6 +24,13 @@ export interface AppConfig {
   };
   stt: {
     serviceUrl: string;
+    maxAudioBytes: number;
+    timeoutMs: number;
+  };
+  localTts: {
+    serviceUrl: string;
+    voiceDir: string;
+    model: string;
     maxAudioBytes: number;
     timeoutMs: number;
   };
@@ -82,6 +92,13 @@ export function createAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig
       serviceUrl: env.STT_SERVICE_URL || 'http://127.0.0.1:8001',
       maxAudioBytes: parseNumber(env.STT_AUDIO_MAX_BYTES, 4 * 1024 * 1024),
       timeoutMs: parseNumber(env.STT_REQUEST_TIMEOUT_MS, 60_000),
+    },
+    localTts: {
+      serviceUrl: env.LOCAL_TTS_SERVICE_URL || 'http://127.0.0.1:8002',
+      voiceDir: env.LOCAL_TTS_VOICE_DIR || join(homedir(), '.ai-chat-web', 'voices'),
+      model: env.LOCAL_TTS_MODEL || 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-8bit',
+      maxAudioBytes: parseNumber(env.LOCAL_TTS_AUDIO_MAX_BYTES, 4 * 1024 * 1024),
+      timeoutMs: parseNumber(env.LOCAL_TTS_REQUEST_TIMEOUT_MS, 10 * 60_000),
     },
   };
 }

@@ -21,12 +21,15 @@ export const storageKeys = {
   elevenLabsStability: 'elevenLabsStability',
   elevenLabsSimilarityBoost: 'elevenLabsSimilarityBoost',
   elevenLabsStyle: 'elevenLabsStyle',
+  zhipuTtsApiKey: 'zhipuTtsApiKey',
+  zhipuTtsApiKeyLastValidated: 'zhipuTtsApiKeyLastValidated',
   zhipuTtsVoice: 'zhipuTtsVoice',
   zhipuTtsSpeed: 'zhipuTtsSpeed',
   zhipuTtsVolume: 'zhipuTtsVolume',
   zhipuTtsEmotionEnabled: 'zhipuTtsEmotionEnabled',
   zhipuTtsEmotionStyle: 'zhipuTtsEmotionStyle',
   zhipuTtsEmotionGranularity: 'zhipuTtsEmotionGranularity',
+  localTtsVoiceId: 'localTtsVoiceId',
   autoSpeakEnabled: 'autoSpeakEnabled',
 } as const;
 

@@ -4,6 +4,7 @@ import net from 'node:net';
 const DEFAULT_WEB_PORT = 5173;
 const API_PORT = Number(process.env.PORT || 3001);
 const STT_PORT = 8001;
+const TTS_PORT = 8002;
 
 const children = new Map();
 const skippedServices = [];
@@ -98,6 +99,7 @@ function finish() {
 const webPort = await findFreePort(DEFAULT_WEB_PORT);
 const apiAvailable = await isPortFree(API_PORT);
 const sttAvailable = await isPortFree(STT_PORT);
+const ttsAvailable = await isPortFree(TTS_PORT);
 
 const services = [
   {
@@ -132,10 +134,21 @@ if (sttAvailable) {
   skippedServices.push(`STT port ${STT_PORT} is already in use; reusing existing STT service.`);
 }
 
+if (ttsAvailable) {
+  services.push({
+    name: 'tts',
+    command: 'pnpm',
+    args: ['dev:tts'],
+  });
+} else {
+  skippedServices.push(`TTS port ${TTS_PORT} is already in use; reusing existing local TTS service.`);
+}
+
 console.log(`Starting local services:
   Web:        http://localhost:${webPort}
   API:        http://localhost:${API_PORT}/health${apiAvailable ? '' : ' (existing)'}
   STT:        http://localhost:${STT_PORT}/health${sttAvailable ? '' : ' (existing)'}
+  Local TTS:  http://localhost:${TTS_PORT}/${ttsAvailable ? '' : ' (existing)'}
 
 Press Ctrl+C to stop services started by this command.`);
 

@@ -1,45 +1,51 @@
 <template>
   <div class="chat-input-wrapper">
-    <textarea
+    <ElInput
       class="chat-input"
+      type="textarea"
       :placeholder="placeholder"
       v-model="inputText"
       @keydown="handleKeydown"
       :disabled="disabled || isRecording"
-      rows="1"
-      ref="textareaRef"
-    ></textarea>
+      :autosize="{ minRows: 1, maxRows: 5 }"
+      resize="none"
+    />
 
     <div class="input-actions">
       <!-- Record button -->
-      <button
+      <ElButton
         class="input-btn"
         :class="{ recording: isRecording }"
         @click="handleRecordToggle"
         :title="isRecording ? '停止录音' : '语音输入'"
         :disabled="disabled && !isRecording"
+        circle
+        text
       >
         {{ isRecording ? '⏹' : '🎤' }}
-      </button>
+      </ElButton>
 
       <!-- Stop / Send -->
-      <button
+      <ElButton
         v-if="isStreaming"
         class="input-btn"
         @click="emit('stop')"
         title="停止生成"
+        circle
+        text
       >
         ⏹
-      </button>
-      <button
+      </ElButton>
+      <ElButton
         v-else
         class="input-btn send"
         @click="handleSend"
         :disabled="disabled || !inputText.trim()"
         title="发送"
+        circle
       >
         ↑
-      </button>
+      </ElButton>
     </div>
   </div>
 
@@ -69,7 +75,6 @@ const emit = defineEmits<{
 }>()
 
 const inputText = ref('')
-const textareaRef = ref<HTMLTextAreaElement>()
 const recordingDuration = ref(0)
 let recordTimer: number | null = null
 
@@ -97,13 +102,6 @@ function handleSend() {
   if (!text) return
   emit('send', text)
   inputText.value = ''
-  autoResize()
-}
-
-function autoResize() {
-  if (textareaRef.value) {
-    textareaRef.value.style.height = 'auto'
-  }
 }
 
 function handleRecordToggle() {

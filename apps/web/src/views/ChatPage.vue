@@ -4,14 +4,14 @@
       <!-- Chat header -->
       <div class="chat-header" v-if="conversationStore.currentConversation">
         <div class="chat-header-left">
-          <button class="input-btn menu-btn" @click="sidebarOpen = true" v-if="isMobile">☰</button>
+          <ElButton class="input-btn menu-btn" text circle @click="sidebarOpen = true" v-if="isMobile">☰</ElButton>
           <div class="chat-header-info">
             <span class="chat-header-name">{{ characterStore.currentCharacter?.name || 'AI 聊天' }}</span>
             <span class="chat-header-status" v-if="isStreaming">正在输入...</span>
           </div>
         </div>
         <div class="chat-header-actions">
-          <button class="input-btn" @click="showMobilePanel = !showMobilePanel" v-if="isMobile" title="角色设置">⚙</button>
+          <ElButton class="input-btn" text circle @click="showMobilePanel = !showMobilePanel" v-if="isMobile" title="角色设置">⚙</ElButton>
         </div>
       </div>
 

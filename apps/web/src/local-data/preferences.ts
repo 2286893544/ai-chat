@@ -36,5 +36,6 @@ export const defaultPreferences = {
     zhipuEmotionEnabled: 'false',
     zhipuEmotionStyle: 'auto',
     zhipuEmotionGranularity: 'sentence',
+    localVoiceId: '',
   },
 } as const;

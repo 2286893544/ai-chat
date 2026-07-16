@@ -29,24 +29,20 @@
       <div v-else style="font-size:12px;color:var(--text-muted);text-align:center;padding:16px">
         暂无角色
       </div>
-      <router-link to="/characters" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;margin-top:8px">
+      <ElButton style="width:100%;margin-top:8px" @click="router.push('/characters')">
         管理角色
-      </router-link>
+      </ElButton>
     </div>
 
     <div class="panel-section">
       <div class="panel-label">设置</div>
       <div class="toggle-row">
         <span>主动聊天</span>
-        <div class="toggle" :class="{ active: proactiveEnabled }" @click="emit('updateProactive', !proactiveEnabled)">
-          <div class="toggle-knob"></div>
-        </div>
+        <ElSwitch :model-value="proactiveEnabled" @update:model-value="emit('updateProactive', $event)" />
       </div>
       <div class="toggle-row">
         <span>自动朗读</span>
-        <div class="toggle" :class="{ active: autoSpeakEnabled }" @click="emit('updateAutoSpeak', !autoSpeakEnabled)">
-          <div class="toggle-knob"></div>
-        </div>
+        <ElSwitch :model-value="autoSpeakEnabled" @update:model-value="emit('updateAutoSpeak', $event)" />
       </div>
 
       <div v-if="character" style="margin-top:16px">
@@ -60,9 +56,9 @@
             <span class="tag" v-for="h in character.hobbies.slice(0,5)" :key="h">{{ h }}</span>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;margin-top:12px" @click="emit('editCharacter')">
+        <ElButton style="width:100%;margin-top:12px" @click="emit('editCharacter')">
           编辑角色
-        </button>
+        </ElButton>
       </div>
     </div>
   </div>

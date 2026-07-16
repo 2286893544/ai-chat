@@ -49,44 +49,48 @@ onMounted(async () => {
           <span class="logo-icon">✦</span>
           <span class="logo-text">AI 聊天</span>
         </div>
-        <button class="sidebar-close" @click="sidebarOpen = false">
+        <ElButton class="sidebar-close" text circle @click="sidebarOpen = false">
           ✕
-        </button>
+        </ElButton>
       </div>
 
       <nav class="sidebar-nav">
-        <button
+        <ElButton
           class="nav-item"
+          text
           :class="{ active: isActive('/') }"
           @click="navigateTo('/')"
         >
           <span class="nav-icon">💬</span>
           <span class="nav-label">聊天</span>
-        </button>
-        <button
+        </ElButton>
+        <ElButton
           class="nav-item"
+          text
           :class="{ active: isActive('/characters') }"
           @click="navigateTo('/characters')"
         >
           <span class="nav-icon">👤</span>
           <span class="nav-label">角色管理</span>
-        </button>
-        <button
+        </ElButton>
+        <ElButton
           class="nav-item"
+          text
           :class="{ active: isActive('/settings') }"
           @click="navigateTo('/settings')"
         >
           <span class="nav-icon">⚙️</span>
           <span class="nav-label">设置</span>
-        </button>
-        <button
+        </ElButton>
+        <ElButton
           class="nav-item"
+          text
           :class="{ active: isActive('/project') }"
           @click="navigateTo('/project')"
         >
           <span class="nav-icon">ⓘ</span>
           <span class="nav-label">项目说明</span>
-        </button>
+        </ElButton>
       </nav>
 
       <div class="sidebar-footer">
@@ -105,11 +109,11 @@ onMounted(async () => {
     <div class="main-area">
       <!-- Mobile header -->
       <header class="mobile-header">
-        <button class="hamburger" @click="toggleSidebar">
+        <ElButton class="hamburger" text circle @click="toggleSidebar">
           <span></span>
           <span></span>
           <span></span>
-        </button>
+        </ElButton>
         <span class="mobile-title">AI 智能聊天</span>
       </header>
 
@@ -199,6 +203,13 @@ onMounted(async () => {
   text-align: left;
 }
 
+.nav-item :deep(> span) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
 .nav-item:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
@@ -274,6 +285,12 @@ onMounted(async () => {
   border: none;
   cursor: pointer;
   padding: 4px;
+}
+
+.hamburger :deep(> span) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .hamburger span {

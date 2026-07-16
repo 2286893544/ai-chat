@@ -10,16 +10,16 @@
       </p>
 
       <div v-if="!apiKeyStore.apiKey" class="key-input-row">
-        <input
+        <ElInput
           type="password"
           v-model="keyInput"
           :placeholder="`输入你的 ${currentProviderLabel} API Key...`"
-          class="form-input"
+          show-password
           @keyup.enter="handleValidate"
         />
-        <button class="btn btn-primary" @click="handleValidate" :disabled="validating">
+        <ElButton type="primary" @click="handleValidate" :loading="validating">
           {{ validating ? '验证中...' : '验证并保存' }}
-        </button>
+        </ElButton>
       </div>
 
       <div v-else>
@@ -28,11 +28,11 @@
           <span v-if="validated" class="success-banner" style="margin:0;padding:4px 12px">已验证</span>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary" @click="handleChangeKey">更换 Key</button>
-          <button class="btn btn-danger" @click="handleClearKey">清空 Key</button>
-          <button class="btn btn-secondary" @click="handleValidate" :disabled="validating">
+          <ElButton @click="handleChangeKey">更换 Key</ElButton>
+          <ElButton type="danger" @click="handleClearKey">清空 Key</ElButton>
+          <ElButton @click="handleValidate" :loading="validating">
             {{ validating ? '验证中...' : '重新验证' }}
-          </button>
+          </ElButton>
         </div>
       </div>
 
@@ -64,39 +64,39 @@
       <div class="card-title">模型设置</div>
       <div class="form-group">
         <label class="form-label">模型服务商</label>
-        <select class="form-input" v-model="modelProvider">
-          <option value="deepseek">DeepSeek</option>
-          <option value="zhipu">智谱大模型（GLM）</option>
-        </select>
+        <ElSelect v-model="modelProvider" class="ui-control">
+          <ElOption label="DeepSeek" value="deepseek" />
+          <ElOption label="智谱大模型（GLM）" value="zhipu" />
+        </ElSelect>
       </div>
       <div class="form-group">
         <label class="form-label">默认模型</label>
-        <select class="form-input" v-model="defaultModel">
+        <ElSelect v-model="defaultModel" class="ui-control">
           <template v-if="modelProvider === 'zhipu'">
-            <option value="glm-5.2">glm-5.2（推荐）</option>
-            <option value="glm-5.1">glm-5.1</option>
-            <option value="glm-5-turbo">glm-5-turbo</option>
-            <option value="glm-5">glm-5</option>
-            <option value="glm-4.7">glm-4.7</option>
-            <option value="glm-4.7-flash">glm-4.7-flash</option>
-            <option value="glm-4.7-flashx">glm-4.7-flashx</option>
-            <option value="glm-4.6">glm-4.6</option>
-            <option value="glm-4.5-air">glm-4.5-air（轻量）</option>
-            <option value="glm-4.5-airx">glm-4.5-airx</option>
-            <option value="glm-4.5-flash">glm-4.5-flash</option>
-            <option value="glm-4-flash-250414">glm-4-flash-250414</option>
-            <option value="glm-4-flashx-250414">glm-4-flashx-250414</option>
+            <ElOption label="glm-5.2（推荐）" value="glm-5.2" />
+            <ElOption label="glm-5.1" value="glm-5.1" />
+            <ElOption label="glm-5-turbo" value="glm-5-turbo" />
+            <ElOption label="glm-5" value="glm-5" />
+            <ElOption label="glm-4.7" value="glm-4.7" />
+            <ElOption label="glm-4.7-flash" value="glm-4.7-flash" />
+            <ElOption label="glm-4.7-flashx" value="glm-4.7-flashx" />
+            <ElOption label="glm-4.6" value="glm-4.6" />
+            <ElOption label="glm-4.5-air（轻量）" value="glm-4.5-air" />
+            <ElOption label="glm-4.5-airx" value="glm-4.5-airx" />
+            <ElOption label="glm-4.5-flash" value="glm-4.5-flash" />
+            <ElOption label="glm-4-flash-250414" value="glm-4-flash-250414" />
+            <ElOption label="glm-4-flashx-250414" value="glm-4-flashx-250414" />
           </template>
           <template v-else>
-            <option value="deepseek-v4-flash">deepseek-v4-flash（推荐，速度快）</option>
-            <option value="deepseek-v4-pro">deepseek-v4-pro（质量高）</option>
-            <option value="deepseek-chat">deepseek-chat（旧版，即将废弃）</option>
+            <ElOption label="deepseek-v4-flash（推荐，速度快）" value="deepseek-v4-flash" />
+            <ElOption label="deepseek-v4-pro（质量高）" value="deepseek-v4-pro" />
+            <ElOption label="deepseek-chat（旧版，即将废弃）" value="deepseek-chat" />
           </template>
-        </select>
+        </ElSelect>
       </div>
       <div class="form-group">
         <label class="form-label">API Base URL</label>
-        <input class="form-input" v-model="baseURL" :placeholder="providerDefaults[modelProvider].baseURL" />
+        <ElInput v-model="baseURL" :placeholder="providerDefaults[modelProvider].baseURL" />
       </div>
     </div>
 
@@ -105,22 +105,22 @@
       <div class="card-title">语音转文字设置</div>
       <div class="form-group">
         <label class="form-label">识别引擎</label>
-        <select class="form-input" v-model="sttProvider">
-          <option value="browser">浏览器识别（无需 Key，不稳定）</option>
-          <option value="faster-whisper">本地 faster-whisper（无需 Key，需启动本地服务）</option>
-          <option value="funasr">本地 FunASR（中文优化，需启动本地服务）</option>
-        </select>
+        <ElSelect v-model="sttProvider" class="ui-control">
+          <ElOption label="浏览器识别（无需 Key，不稳定）" value="browser" />
+          <ElOption label="本地 faster-whisper（无需 Key，需启动本地服务）" value="faster-whisper" />
+          <ElOption label="本地 FunASR（中文优化，需启动本地服务）" value="funasr" />
+        </ElSelect>
       </div>
 
       <template v-if="sttProvider !== 'browser'">
         <div class="form-row">
           <div v-if="sttProvider === 'faster-whisper'" class="form-group">
             <label class="form-label">本地模型</label>
-            <select class="form-input" v-model="localWhisperModel">
-              <option value="base">base（推荐，速度和效果均衡）</option>
-              <option value="small">small（更准，首次下载更久）</option>
-              <option value="tiny">tiny（最快，效果一般）</option>
-            </select>
+            <ElSelect v-model="localWhisperModel" class="ui-control">
+              <ElOption label="base（推荐，速度和效果均衡）" value="base" />
+              <ElOption label="small（更准，首次下载更久）" value="small" />
+              <ElOption label="tiny（最快，效果一般）" value="tiny" />
+            </ElSelect>
           </div>
           <div v-else class="form-group">
             <label class="form-label">本地模型</label>
@@ -128,11 +128,11 @@
           </div>
           <div class="form-group">
             <label class="form-label">识别语言</label>
-            <select class="form-input" v-model="sttLanguage">
-              <option value="zh">中文</option>
-              <option value="">自动识别</option>
-              <option value="en">英文</option>
-            </select>
+            <ElSelect v-model="sttLanguage" class="ui-control">
+              <ElOption label="中文" value="zh" />
+              <ElOption label="自动识别" value="" />
+              <ElOption label="英文" value="en" />
+            </ElSelect>
           </div>
         </div>
         <p v-if="sttProvider === 'funasr'" class="settings-hint">
@@ -146,79 +146,161 @@
       <div class="card-title">朗读设置</div>
       <div class="form-group">
         <label class="form-label">朗读引擎</label>
-        <select class="form-input" v-model="ttsProvider">
-          <option value="browser">系统朗读（本机浏览器）</option>
-          <option value="edge">Edge TTS（免费，无需 Key）</option>
-          <option value="elevenlabs">ElevenLabs（更自然、有情绪）</option>
-          <option value="zhipu">智谱 GLM-TTS（使用模型 API Key）</option>
-        </select>
+        <ElSelect v-model="ttsProvider" class="ui-control">
+          <ElOption label="系统朗读（本机浏览器）" value="browser" />
+          <ElOption label="本地语音复刻（Qwen3-TTS）" value="qwen-local" />
+          <ElOption label="Edge TTS（免费，无需 Key）" value="edge" />
+          <ElOption label="ElevenLabs（更自然、有情绪）" value="elevenlabs" />
+          <ElOption label="智谱 GLM-TTS" value="zhipu" />
+        </ElSelect>
       </div>
+
+      <template v-if="ttsProvider === 'qwen-local'">
+        <div class="local-tts-status" :class="{ ready: localTtsAvailable === true }">
+          <span class="status-dot"></span>
+          <span>{{ localTtsStatus }}</span>
+          <ElButton size="small" :loading="localTtsLoading" @click="refreshLocalTts">
+            {{ localTtsLoading ? '检查中...' : '刷新' }}
+          </ElButton>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">当前音色</label>
+          <div class="voice-input-row">
+            <ElSelect v-model="localTtsVoiceId" class="ui-control" :disabled="localVoices.length === 0">
+              <ElOption :label="localVoices.length ? '请选择音色' : '暂无复刻音色'" value="" />
+              <ElOption
+                v-for="voice in localVoices"
+                :key="voice.id"
+                :label="`${voice.name} · ${voice.durationSeconds.toFixed(1)} 秒`"
+                :value="voice.id"
+              />
+            </ElSelect>
+            <ElButton
+              size="small"
+              :disabled="!localTtsVoiceId || previewingVoice !== null || localTtsAvailable !== true"
+              @click="handlePreviewLocalVoice"
+            >
+              ▶ {{ previewingVoice === `qwen-local:${localTtsVoiceId}` ? '生成中' : '试听' }}
+            </ElButton>
+            <ElButton type="danger" size="small" :disabled="!localTtsVoiceId" @click="handleDeleteLocalVoice">
+              删除
+            </ElButton>
+          </div>
+        </div>
+
+        <div class="local-voice-editor">
+          <div class="local-recording-guide">
+            <div class="local-recording-guide-header">
+              <strong>录音或上传音频时，请完整朗读以下内容</strong>
+            </div>
+            <p>{{ localVoiceRecordingScript }}</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">音色名称</label>
+              <ElInput v-model="localVoiceName" maxlength="80" placeholder="例如：我的声音" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">参考音频</label>
+              <div class="local-audio-actions">
+                <ElUpload
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  accept="audio/*,.wav,.mp3,.m4a"
+                  :on-change="handleLocalAudioUpload"
+                >
+                  <ElButton size="small">选择音频</ElButton>
+                </ElUpload>
+                <ElButton
+                  v-if="!localVoiceRecording"
+                  size="small"
+                  :disabled="localVoiceProcessing || !voiceStore.isRecorderSupported"
+                  @click="handleStartLocalVoiceRecording"
+                >
+                  开始录音并朗读
+                </ElButton>
+                <ElButton v-else type="danger" size="small" @click="handleStopLocalVoiceRecording">
+                  停止 {{ voiceStore.recordingDuration }} 秒
+                </ElButton>
+                <span v-if="localVoiceSourceLabel" class="local-audio-meta">
+                  {{ localVoiceSourceLabel }} · {{ localVoiceDuration.toFixed(1) }} 秒
+                </span>
+              </div>
+            </div>
+          </div>
+          <ElButton
+            type="primary"
+            :loading="localVoiceSaving || localVoiceProcessing"
+            :disabled="localVoiceSaving || localVoiceProcessing || !canCreateLocalVoice"
+            @click="handleCreateLocalVoice"
+          >
+            {{ localVoiceSaving ? '保存中...' : '创建音色' }}
+          </ElButton>
+          <p class="settings-hint local-tts-hint">样本需 3-30 秒、环境安静、只包含一个人的声音。首次试听会下载本地模型。</p>
+        </div>
+      </template>
 
       <template v-if="ttsProvider === 'edge'">
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">中文音色</label>
-            <select class="form-input" v-model="edgeTtsVoice">
-              <option v-for="voice in edgeTtsVoices" :key="voice.value" :value="voice.value">
-                {{ voice.label }}
-              </option>
-            </select>
+            <ElSelect v-model="edgeTtsVoice" class="ui-control">
+              <ElOption v-for="voice in edgeTtsVoices" :key="voice.value" :label="voice.label" :value="voice.value" />
+            </ElSelect>
             <div class="voice-preview-grid">
-              <button
+              <ElButton
                 v-for="voice in edgeTtsVoices"
                 :key="voice.value"
-                class="btn btn-secondary btn-sm voice-preview-btn"
+                class="voice-preview-btn"
                 :class="{ active: edgeTtsVoice === voice.value }"
                 :disabled="previewingVoice !== null"
+                size="small"
                 @click="handlePreviewEdgeVoice(voice.value)"
               >
                 ▶ {{ previewingVoice === `edge:${voice.value}` ? '播放中' : voice.label }}
-              </button>
+              </ElButton>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">语速</label>
-            <select class="form-input" v-model="edgeTtsRate">
-              <option value="-20%">慢一点</option>
-              <option value="-10%">稍慢</option>
-              <option value="+0%">正常</option>
-              <option value="+10%">稍快</option>
-              <option value="+20%">快一点</option>
-            </select>
+            <ElSelect v-model="edgeTtsRate" class="ui-control">
+              <ElOption label="慢一点" value="-20%" />
+              <ElOption label="稍慢" value="-10%" />
+              <ElOption label="正常" value="+0%" />
+              <ElOption label="稍快" value="+10%" />
+              <ElOption label="快一点" value="+20%" />
+            </ElSelect>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">音调</label>
-            <select class="form-input" v-model="edgeTtsPitch">
-              <option value="-10Hz">低一点</option>
-              <option value="+0Hz">正常</option>
-              <option value="+10Hz">高一点</option>
-              <option value="+20Hz">更活泼</option>
-            </select>
+            <ElSelect v-model="edgeTtsPitch" class="ui-control">
+              <ElOption label="低一点" value="-10Hz" />
+              <ElOption label="正常" value="+0Hz" />
+              <ElOption label="高一点" value="+10Hz" />
+              <ElOption label="更活泼" value="+20Hz" />
+            </ElSelect>
           </div>
           <div class="form-group">
             <label class="form-label">音量</label>
-            <select class="form-input" v-model="edgeTtsVolume">
-              <option value="-20%">小一点</option>
-              <option value="+0%">正常</option>
-              <option value="+20%">大一点</option>
-            </select>
+            <ElSelect v-model="edgeTtsVolume" class="ui-control">
+              <ElOption label="小一点" value="-20%" />
+              <ElOption label="正常" value="+0%" />
+              <ElOption label="大一点" value="+20%" />
+            </ElSelect>
           </div>
         </div>
         <div class="toggle-row">
           <span>隐藏情绪控制</span>
-          <div class="toggle" :class="{ active: edgeTtsEmotionEnabled }" @click="edgeTtsEmotionEnabled = !edgeTtsEmotionEnabled">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="edgeTtsEmotionEnabled" />
         </div>
         <div v-if="edgeTtsEmotionEnabled" class="form-group">
           <label class="form-label">情绪风格</label>
-          <select class="form-input" v-model="edgeTtsEmotionStyle">
-            <option v-for="style in edgeEmotionStyles" :key="style.value" :value="style.value">
-              {{ style.label }}
-            </option>
-          </select>
+          <ElSelect v-model="edgeTtsEmotionStyle" class="ui-control">
+            <ElOption v-for="style in edgeEmotionStyles" :key="style.value" :label="style.label" :value="style.value" />
+          </ElSelect>
         </div>
         <p v-if="edgeTtsEmotionEnabled" class="settings-hint">
           不会向朗读文本添加可读标签，只会在后端按风格调整 Edge TTS 的语速、音调和音量。
@@ -228,107 +310,137 @@
       <template v-if="ttsProvider === 'elevenlabs'">
         <div class="form-group">
           <label class="form-label">ElevenLabs API Key</label>
-          <input class="form-input" type="password" v-model="elevenLabsApiKey" placeholder="输入 ElevenLabs API Key" />
+          <ElInput type="password" v-model="elevenLabsApiKey" placeholder="输入 ElevenLabs API Key" show-password />
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Voice ID</label>
             <div class="voice-input-row">
-              <input class="form-input" v-model="elevenLabsVoiceId" placeholder="JBFqnCBsd6RMkjVDRZzb" />
-              <button class="btn btn-secondary btn-sm" :disabled="previewingVoice !== null" @click="handlePreviewElevenLabsVoice">
+              <ElInput v-model="elevenLabsVoiceId" placeholder="JBFqnCBsd6RMkjVDRZzb" />
+              <ElButton size="small" :disabled="previewingVoice !== null" @click="handlePreviewElevenLabsVoice">
                 ▶ {{ previewingVoice === 'elevenlabs:current' ? '播放中' : '试听' }}
-              </button>
+              </ElButton>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">模型</label>
-            <select class="form-input" v-model="elevenLabsModelId">
-              <option value="eleven_multilingual_v2">multilingual v2（稳定自然）</option>
-              <option value="eleven_turbo_v2_5">turbo v2.5（更快）</option>
-              <option value="eleven_flash_v2_5">flash v2.5（低延迟）</option>
-            </select>
+            <ElSelect v-model="elevenLabsModelId" class="ui-control">
+              <ElOption label="multilingual v2（稳定自然）" value="eleven_multilingual_v2" />
+              <ElOption label="turbo v2.5（更快）" value="eleven_turbo_v2_5" />
+              <ElOption label="flash v2.5（低延迟）" value="eleven_flash_v2_5" />
+            </ElSelect>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">稳定度 {{ elevenLabsStability }}</label>
-            <input class="form-input" type="range" min="0" max="1" step="0.05" v-model="elevenLabsStability" />
+            <ElSlider v-model="elevenLabsStability" :min="0" :max="1" :step="0.05" />
           </div>
           <div class="form-group">
             <label class="form-label">相似度 {{ elevenLabsSimilarityBoost }}</label>
-            <input class="form-input" type="range" min="0" max="1" step="0.05" v-model="elevenLabsSimilarityBoost" />
+            <ElSlider v-model="elevenLabsSimilarityBoost" :min="0" :max="1" :step="0.05" />
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">表现力 {{ elevenLabsStyle }}</label>
-          <input class="form-input" type="range" min="0" max="1" step="0.05" v-model="elevenLabsStyle" />
+          <ElSlider v-model="elevenLabsStyle" :min="0" :max="1" :step="0.05" />
         </div>
       </template>
 
       <template v-if="ttsProvider === 'zhipu'">
-        <p class="settings-hint">使用上方的模型 API Key。请确保它是有效的智谱 API Key。</p>
+        <div class="form-group tts-key-field">
+          <div class="tts-key-heading">
+            <label class="form-label">智谱朗读 API Key</label>
+            <span v-if="zhipuTtsKeyValidated" class="tts-key-status">已验证</span>
+          </div>
+
+          <div v-if="!zhipuTtsKeyValidated" class="key-input-row tts-key-input-row">
+            <ElInput
+              type="password"
+              v-model="zhipuTtsApiKey"
+              placeholder="输入智谱 GLM-TTS API Key"
+              autocomplete="off"
+              show-password
+              @keyup.enter="handleValidateZhipuTtsKey"
+            />
+            <ElButton
+              type="primary"
+              :loading="zhipuTtsKeyValidating"
+              :disabled="zhipuTtsKeyValidating || !zhipuTtsApiKey.trim()"
+              @click="handleValidateZhipuTtsKey"
+            >
+              {{ zhipuTtsKeyValidating ? '验证中...' : '验证并保存' }}
+            </ElButton>
+          </div>
+
+          <div v-else class="tts-key-saved-row">
+            <span class="key-masked">{{ maskedZhipuTtsApiKey }}</span>
+            <ElButton size="small" @click="handleChangeZhipuTtsKey">更换 Key</ElButton>
+            <ElButton type="danger" size="small" @click="handleClearZhipuTtsKey">清空 Key</ElButton>
+          </div>
+
+          <p class="settings-hint tts-key-hint">
+            校验会调用 GLM-TTS 生成极短测试音频。未配置独立 Key 时，朗读仍兼容使用上方的模型 API Key。
+          </p>
+          <p v-if="zhipuTtsKeyError" class="tts-key-error">{{ zhipuTtsKeyError }}</p>
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">音色</label>
-            <select class="form-input" v-model="zhipuTtsVoice">
-              <option v-for="voice in zhipuTtsVoices" :key="voice.value" :value="voice.value">
-                {{ voice.label }}
-              </option>
-            </select>
+            <ElSelect v-model="zhipuTtsVoice" class="ui-control">
+              <ElOption v-for="voice in zhipuTtsVoices" :key="voice.value" :label="voice.label" :value="voice.value" />
+            </ElSelect>
             <div class="voice-preview-grid">
-              <button
+              <ElButton
                 v-for="voice in zhipuTtsVoices"
                 :key="voice.value"
-                class="btn btn-secondary btn-sm voice-preview-btn"
+                class="voice-preview-btn"
                 :class="{ active: zhipuTtsVoice === voice.value }"
                 :disabled="previewingVoice !== null"
+                size="small"
                 @click="handlePreviewZhipuVoice(voice.value)"
               >
                 ▶ {{ previewingVoice === `zhipu:${voice.value}` ? '播放中' : voice.label }}
-              </button>
+              </ElButton>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">语速</label>
-            <select class="form-input" v-model="zhipuTtsSpeed">
-              <option value="0.8">稍慢</option>
-              <option value="1">标准</option>
-              <option value="1.2">推荐</option>
-              <option value="1.5">快速</option>
-              <option value="1.8">很快</option>
-              <option value="2">最快</option>
-            </select>
+            <ElSelect v-model="zhipuTtsSpeed" class="ui-control">
+              <ElOption label="稍慢" value="0.8" />
+              <ElOption label="标准" value="1" />
+              <ElOption label="推荐" value="1.2" />
+              <ElOption label="快速" value="1.5" />
+              <ElOption label="很快" value="1.8" />
+              <ElOption label="最快" value="2" />
+            </ElSelect>
           </div>
           <div class="form-group">
             <label class="form-label">音量</label>
-            <select class="form-input" v-model="zhipuTtsVolume">
-              <option value="0.8">稍低</option>
-              <option value="1">正常</option>
-              <option value="1.2">稍高</option>
-            </select>
+            <ElSelect v-model="zhipuTtsVolume" class="ui-control">
+              <ElOption label="稍低" value="0.8" />
+              <ElOption label="正常" value="1" />
+              <ElOption label="稍高" value="1.2" />
+            </ElSelect>
           </div>
         </div>
         <div class="toggle-row">
           <span>超情感表达</span>
-          <div class="toggle" :class="{ active: zhipuTtsEmotionEnabled }" @click="zhipuTtsEmotionEnabled = !zhipuTtsEmotionEnabled">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="zhipuTtsEmotionEnabled" />
         </div>
         <div v-if="zhipuTtsEmotionEnabled" class="form-row">
           <div class="form-group">
             <label class="form-label">情绪风格</label>
-            <select class="form-input" v-model="zhipuTtsEmotionStyle">
-              <option v-for="style in zhipuEmotionStyles" :key="style.value" :value="style.value">
-                {{ style.label }}
-              </option>
-            </select>
+            <ElSelect v-model="zhipuTtsEmotionStyle" class="ui-control">
+              <ElOption v-for="style in zhipuEmotionStyles" :key="style.value" :label="style.label" :value="style.value" />
+            </ElSelect>
           </div>
           <div class="form-group">
             <label class="form-label">标注粒度</label>
-            <select class="form-input" v-model="zhipuTtsEmotionGranularity">
-              <option value="sentence">每句话</option>
-              <option value="paragraph">每一段</option>
-            </select>
+            <ElSelect v-model="zhipuTtsEmotionGranularity" class="ui-control">
+              <ElOption label="每句话" value="sentence" />
+              <ElOption label="每一段" value="paragraph" />
+            </ElSelect>
           </div>
         </div>
         <p v-if="zhipuTtsEmotionEnabled" class="settings-hint">
@@ -344,8 +456,8 @@
         所有数据（角色配置、聊天记录、API Key）都保存在本地浏览器中。清空浏览器数据将会删除所有信息。
       </p>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-danger" @click="handleClearConversations">清空所有会话</button>
-        <button class="btn btn-danger" @click="handleClearAll">清空全部数据</button>
+        <ElButton type="danger" @click="handleClearConversations">清空所有会话</ElButton>
+        <ElButton type="danger" @click="handleClearAll">清空全部数据</ElButton>
       </div>
     </div>
   </div>
@@ -353,7 +465,8 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { UploadFile } from 'element-plus'
 import { useApiKeyStore } from '../stores/apiKey'
 import { useCharacterStore } from '../stores/character'
 import { useConversationStore } from '../stores/conversation'
@@ -363,7 +476,8 @@ import { defaultPreferences } from '../local-data/preferences'
 import { projectInfo } from '../local-data/projectInfo'
 import { storageKeys } from '../local-data/storageKeys'
 import { edgeEmotionStyles, edgeTtsVoices, ttsPreviewText, zhipuEmotionStyles, zhipuTtsVoices } from '../local-data/ttsVoices'
-import type { TTSConfig } from '@ai-chat/shared'
+import { blobToDataURL, convertAudioBlobToWav } from '../utils/voice'
+import type { LocalTtsVoice, TTSConfig } from '@ai-chat/shared'
 
 const apiKeyStore = useApiKeyStore()
 const characterStore = useCharacterStore()
@@ -377,6 +491,20 @@ const success = ref('')
 const validating = ref(false)
 const validated = ref(false)
 const previewingVoice = ref<string | null>(null)
+const localVoices = ref<LocalTtsVoice[]>([])
+const localTtsVoiceId = ref(localStorage.getItem(storageKeys.localTtsVoiceId) || '')
+const localTtsAvailable = ref<boolean | null>(null)
+const localTtsStatus = ref('正在检查本地服务...')
+const localTtsLoading = ref(false)
+const localVoiceRecordingScript = '你好，欢迎使用我的自定义音色。今天的天气很不错，我正在用平稳、自然的语气录制一段参考声音。希望这段声音清晰、流畅，能够准确保留我的说话特点。'
+const localVoiceName = ref('')
+const localVoiceTranscript = ref(localVoiceRecordingScript)
+const localVoiceWav = ref<Blob | null>(null)
+const localVoiceDuration = ref(0)
+const localVoiceSourceLabel = ref('')
+const localVoiceRecording = ref(false)
+const localVoiceProcessing = ref(false)
+const localVoiceSaving = ref(false)
 
 type ModelProvider = keyof typeof defaultPreferences.providers
 
@@ -414,9 +542,15 @@ const edgeTtsEmotionStyle = ref(localStorage.getItem(storageKeys.edgeTtsEmotionS
 const elevenLabsApiKey = ref(localStorage.getItem(storageKeys.elevenLabsApiKey) || '')
 const elevenLabsVoiceId = ref(localStorage.getItem(storageKeys.elevenLabsVoiceId) || defaultPreferences.tts.elevenLabsVoiceId)
 const elevenLabsModelId = ref(localStorage.getItem(storageKeys.elevenLabsModelId) || defaultPreferences.tts.elevenLabsModelId)
-const elevenLabsStability = ref(localStorage.getItem(storageKeys.elevenLabsStability) || defaultPreferences.tts.elevenLabsStability)
-const elevenLabsSimilarityBoost = ref(localStorage.getItem(storageKeys.elevenLabsSimilarityBoost) || defaultPreferences.tts.elevenLabsSimilarityBoost)
-const elevenLabsStyle = ref(localStorage.getItem(storageKeys.elevenLabsStyle) || defaultPreferences.tts.elevenLabsStyle)
+const elevenLabsStability = ref(Number(localStorage.getItem(storageKeys.elevenLabsStability) || defaultPreferences.tts.elevenLabsStability))
+const elevenLabsSimilarityBoost = ref(Number(localStorage.getItem(storageKeys.elevenLabsSimilarityBoost) || defaultPreferences.tts.elevenLabsSimilarityBoost))
+const elevenLabsStyle = ref(Number(localStorage.getItem(storageKeys.elevenLabsStyle) || defaultPreferences.tts.elevenLabsStyle))
+const zhipuTtsApiKey = ref(localStorage.getItem(storageKeys.zhipuTtsApiKey) || '')
+const zhipuTtsKeyValidating = ref(false)
+const zhipuTtsKeyValidated = ref(Boolean(
+  zhipuTtsApiKey.value && localStorage.getItem(storageKeys.zhipuTtsApiKeyLastValidated),
+))
+const zhipuTtsKeyError = ref('')
 const zhipuTtsVoice = ref(localStorage.getItem(storageKeys.zhipuTtsVoice) || defaultPreferences.tts.zhipuVoice)
 const storedZhipuTtsSpeed = localStorage.getItem(storageKeys.zhipuTtsSpeed)
 const zhipuTtsSpeed = ref(storedZhipuTtsSpeed === '1' ? defaultPreferences.tts.zhipuSpeed : storedZhipuTtsSpeed || defaultPreferences.tts.zhipuSpeed)
@@ -425,6 +559,14 @@ const zhipuTtsEmotionEnabled = ref(localStorage.getItem(storageKeys.zhipuTtsEmot
 const zhipuTtsEmotionStyle = ref(localStorage.getItem(storageKeys.zhipuTtsEmotionStyle) || defaultPreferences.tts.zhipuEmotionStyle)
 const zhipuTtsEmotionGranularity = ref(localStorage.getItem(storageKeys.zhipuTtsEmotionGranularity) || defaultPreferences.tts.zhipuEmotionGranularity)
 const currentProviderLabel = computed(() => modelProvider.value === 'zhipu' ? '智谱' : 'DeepSeek')
+const maskedZhipuTtsApiKey = computed(() => {
+  const key = zhipuTtsApiKey.value
+  if (key.length <= 8) return '****'
+  return `${key.slice(0, 4)}****${key.slice(-4)}`
+})
+const canCreateLocalVoice = computed(() => Boolean(
+  localVoiceName.value.trim() && localVoiceTranscript.value.trim() && localVoiceWav.value,
+))
 
 function showSaved(message = '设置已保存') {
   ElMessage({
@@ -482,6 +624,146 @@ function handlePreviewZhipuVoice(voice: string) {
   })
 }
 
+function handlePreviewLocalVoice() {
+  if (!localTtsVoiceId.value) return
+  return previewVoice(`qwen-local:${localTtsVoiceId.value}`, {
+    provider: 'qwen-local',
+    localVoiceId: localTtsVoiceId.value,
+  })
+}
+
+async function refreshLocalTts() {
+  localTtsLoading.value = true
+  try {
+    const [healthResponse, voicesResponse] = await Promise.all([
+      fetch('/api/tts/local/health'),
+      fetch('/api/tts/local/voices'),
+    ])
+    localTtsAvailable.value = healthResponse.ok
+    localTtsStatus.value = healthResponse.ok ? '本地 Qwen3-TTS 服务已就绪' : '本地 Qwen3-TTS 服务未启动'
+
+    if (voicesResponse.ok) {
+      const data = await voicesResponse.json() as { voices?: LocalTtsVoice[] }
+      localVoices.value = data.voices || []
+      if (localTtsVoiceId.value && !localVoices.value.some((voice) => voice.id === localTtsVoiceId.value)) {
+        localTtsVoiceId.value = ''
+      }
+    }
+  } catch {
+    localTtsAvailable.value = false
+    localTtsStatus.value = '无法连接本地 Qwen3-TTS 服务'
+  } finally {
+    localTtsLoading.value = false
+  }
+}
+
+async function prepareLocalVoiceAudio(blob: Blob, label: string) {
+  localVoiceProcessing.value = true
+  try {
+    const converted = await convertAudioBlobToWav(blob)
+    localVoiceWav.value = converted.blob
+    localVoiceDuration.value = converted.durationSeconds
+    localVoiceSourceLabel.value = label
+  } finally {
+    localVoiceProcessing.value = false
+  }
+}
+
+async function handleLocalAudioUpload(uploadFile: UploadFile) {
+  const file = uploadFile.raw
+  if (!file) return
+
+  voiceStore.resetRecording()
+  localVoiceTranscript.value = localVoiceRecordingScript
+  if (!localVoiceName.value.trim()) localVoiceName.value = file.name.replace(/\.[^.]+$/, '')
+  try {
+    await prepareLocalVoiceAudio(file, file.name)
+  } catch (error: any) {
+    ElMessage.error(error?.message || '参考音频处理失败')
+  }
+}
+
+async function handleStartLocalVoiceRecording() {
+  try {
+    localVoiceTranscript.value = localVoiceRecordingScript
+    await voiceStore.startRecording()
+    localVoiceRecording.value = true
+  } catch (error: any) {
+    ElMessage.error(error?.message === 'VOICE_PERMISSION_DENIED' ? '请允许浏览器使用麦克风' : '无法开始录音')
+  }
+}
+
+async function handleStopLocalVoiceRecording() {
+  localVoiceRecording.value = false
+  const blob = await voiceStore.stopRecording()
+  if (!blob) {
+    ElMessage.error('没有获取到录音')
+    return
+  }
+
+  if (!localVoiceName.value.trim()) localVoiceName.value = `我的音色 ${localVoices.value.length + 1}`
+  try {
+    await prepareLocalVoiceAudio(blob, '麦克风录音')
+  } catch (error: any) {
+    ElMessage.error(error?.message || '录音处理失败')
+  }
+}
+
+async function handleCreateLocalVoice() {
+  if (!localVoiceWav.value || !canCreateLocalVoice.value) return
+  localVoiceSaving.value = true
+  try {
+    const response = await fetch('/api/tts/local/voices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: localVoiceName.value.trim(),
+        transcript: localVoiceTranscript.value.trim(),
+        audioDataUrl: await blobToDataURL(localVoiceWav.value),
+      }),
+    })
+    const data = await response.json().catch(() => ({})) as { voice?: LocalTtsVoice; message?: string }
+    if (!response.ok || !data.voice) throw new Error(data.message || '创建音色失败')
+
+    await refreshLocalTts()
+    localTtsVoiceId.value = data.voice.id
+    localVoiceName.value = ''
+    localVoiceTranscript.value = localVoiceRecordingScript
+    localVoiceWav.value = null
+    localVoiceDuration.value = 0
+    localVoiceSourceLabel.value = ''
+    voiceStore.resetRecording()
+    ElMessage.success('本地复刻音色已创建')
+  } catch (error: any) {
+    ElMessage.error(error?.message || '创建音色失败')
+  } finally {
+    localVoiceSaving.value = false
+  }
+}
+
+async function handleDeleteLocalVoice() {
+  if (!localTtsVoiceId.value) return
+  const voice = localVoices.value.find((item) => item.id === localTtsVoiceId.value)
+  try {
+    await ElMessageBox.confirm(`确定删除音色“${voice?.name || '未命名'}”吗？`, '删除本地音色', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+
+  const response = await fetch(`/api/tts/local/voices/${encodeURIComponent(localTtsVoiceId.value)}`, { method: 'DELETE' })
+  if (!response.ok) {
+    ElMessage.error('删除音色失败')
+    return
+  }
+  localTtsVoiceId.value = ''
+  await refreshLocalTts()
+  ElMessage.success('本地音色已删除')
+}
+
 watch(modelProvider, (value) => {
   localStorage.setItem(storageKeys.modelProvider, value)
   defaultModel.value = providerDefaults[value].model
@@ -517,6 +799,11 @@ watch(sttLanguage, (value) => {
 watch(ttsProvider, (value) => {
   localStorage.setItem(storageKeys.ttsProvider, value)
   showSaved('朗读引擎已保存')
+})
+
+watch(localTtsVoiceId, (value) => {
+  if (value) localStorage.setItem(storageKeys.localTtsVoiceId, value)
+  else localStorage.removeItem(storageKeys.localTtsVoiceId)
 })
 
 watch(edgeTtsVoice, (value) => {
@@ -567,15 +854,22 @@ watch(elevenLabsModelId, (value) => {
 })
 
 watch(elevenLabsStability, (value) => {
-  localStorage.setItem(storageKeys.elevenLabsStability, value)
+  localStorage.setItem(storageKeys.elevenLabsStability, String(value))
 })
 
 watch(elevenLabsSimilarityBoost, (value) => {
-  localStorage.setItem(storageKeys.elevenLabsSimilarityBoost, value)
+  localStorage.setItem(storageKeys.elevenLabsSimilarityBoost, String(value))
 })
 
 watch(elevenLabsStyle, (value) => {
-  localStorage.setItem(storageKeys.elevenLabsStyle, value)
+  localStorage.setItem(storageKeys.elevenLabsStyle, String(value))
+})
+
+watch(zhipuTtsApiKey, (value) => {
+  if (value.trim() !== localStorage.getItem(storageKeys.zhipuTtsApiKey)) {
+    zhipuTtsKeyValidated.value = false
+  }
+  zhipuTtsKeyError.value = ''
 })
 
 watch(zhipuTtsVoice, (value) => {
@@ -606,10 +900,78 @@ watch(zhipuTtsEmotionGranularity, (value) => {
   showSaved('智谱情绪标注粒度已保存')
 })
 
+async function handleValidateZhipuTtsKey() {
+  const key = zhipuTtsApiKey.value.trim()
+  if (!key) {
+    zhipuTtsKeyError.value = '请输入智谱朗读 API Key'
+    ElMessage.warning(zhipuTtsKeyError.value)
+    return
+  }
+
+  zhipuTtsKeyValidating.value = true
+  zhipuTtsKeyError.value = ''
+
+  try {
+    const response = await fetch('/api/tts/speak', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Model-Api-Key': key,
+      },
+      body: JSON.stringify({
+        provider: 'zhipu',
+        text: '你好',
+        zhipuVoice: zhipuTtsVoice.value,
+        zhipuSpeed: 1,
+        zhipuVolume: 1,
+        zhipuStream: false,
+        zhipuBaseURL: defaultPreferences.providers.zhipu.baseURL,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: '智谱朗读 Key 校验失败' }))
+      throw new Error(error.message || '智谱朗读 Key 校验失败')
+    }
+
+    const audio = await response.arrayBuffer()
+    if (audio.byteLength === 0) {
+      throw new Error('智谱朗读接口未返回音频')
+    }
+
+    localStorage.setItem(storageKeys.zhipuTtsApiKey, key)
+    localStorage.setItem(storageKeys.zhipuTtsApiKeyLastValidated, new Date().toISOString())
+    zhipuTtsApiKey.value = key
+    zhipuTtsKeyValidated.value = true
+    ElMessage.success('智谱朗读 Key 已验证并保存')
+  } catch (err: any) {
+    zhipuTtsKeyValidated.value = false
+    zhipuTtsKeyError.value = err?.message || '智谱朗读 Key 校验失败'
+    ElMessage.error(zhipuTtsKeyError.value)
+  } finally {
+    zhipuTtsKeyValidating.value = false
+  }
+}
+
+function handleChangeZhipuTtsKey() {
+  zhipuTtsKeyValidated.value = false
+  zhipuTtsKeyError.value = ''
+}
+
+function handleClearZhipuTtsKey() {
+  zhipuTtsApiKey.value = ''
+  zhipuTtsKeyValidated.value = false
+  zhipuTtsKeyError.value = ''
+  localStorage.removeItem(storageKeys.zhipuTtsApiKey)
+  localStorage.removeItem(storageKeys.zhipuTtsApiKeyLastValidated)
+  ElMessage.success('智谱朗读 Key 已清空')
+}
+
 onMounted(() => {
   if (apiKeyStore.apiKey) {
     validated.value = true
   }
+  refreshLocalTts()
 })
 
 async function handleValidate() {
@@ -673,23 +1035,37 @@ function handleClearKey() {
 }
 
 async function handleClearConversations() {
-  if (confirm('确定清空所有会话记录吗？此操作不可恢复。')) {
-    await conversationStore.clearConversations()
-    success.value = '所有会话已清空'
-    ElMessage.success('所有会话已清空')
+  try {
+    await ElMessageBox.confirm('确定清空所有会话记录吗？此操作不可恢复。', '清空会话', {
+      confirmButtonText: '清空',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
   }
+  await conversationStore.clearConversations()
+  success.value = '所有会话已清空'
+  ElMessage.success('所有会话已清空')
 }
 
 async function handleClearAll() {
-  if (confirm('确定清空全部数据（角色、会话、消息）吗？此操作不可恢复。')) {
-    await characterStore.clearCharacters()
-    await conversationStore.clearConversations()
-    apiKeyStore.clearKey()
-    Object.values(storageKeys).forEach((key) => localStorage.removeItem(key))
-    success.value = '全部数据已清空'
-    validated.value = false
-    ElMessage.success('全部本地数据已清空')
+  try {
+    await ElMessageBox.confirm('确定清空全部数据（角色、会话、消息）吗？此操作不可恢复。', '清空全部数据', {
+      confirmButtonText: '全部清空',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
   }
+  await characterStore.clearCharacters()
+  await conversationStore.clearConversations()
+  apiKeyStore.clearKey()
+  Object.values(storageKeys).forEach((key) => localStorage.removeItem(key))
+  success.value = '全部数据已清空'
+  validated.value = false
+  ElMessage.success('全部本地数据已清空')
 }
 </script>
 
@@ -726,5 +1102,99 @@ async function handleClearAll() {
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.local-tts-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.local-tts-status .btn,
+.local-tts-status .el-button {
+  margin-left: auto;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--danger, #dc2626);
+}
+
+.local-tts-status.ready .status-dot {
+  background: var(--success, #16a34a);
+}
+
+.local-voice-editor {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.local-recording-guide {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--primary-color);
+  background: var(--bg-secondary);
+}
+
+.local-recording-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.local-recording-guide p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.local-audio-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.file-button input {
+  display: none;
+}
+
+.local-audio-meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.local-tts-hint {
+  margin: 10px 0 0;
+}
+
+@media (max-width: 640px) {
+  .local-recording-guide-header {
+    align-items: flex-start;
+  }
+
+  .voice-input-row {
+    flex-wrap: wrap;
+  }
+
+  .voice-input-row .form-input,
+  .voice-input-row .el-select,
+  .voice-input-row .el-input {
+    flex-basis: 100%;
+  }
 }
 </style>

@@ -6,13 +6,17 @@
     "dev": "pnpm --parallel -r dev",
     "dev:all": "node scripts/dev-all.mjs",
     "dev:stt": "cd apps/stt-service && uv run uvicorn app:app --host 127.0.0.1 --port 8001",
+    "dev:tts": "cd apps/tts-service && HF_ENDPOINT=https://hf-mirror.com HF_HUB_DISABLE_XET=1 uv run mlx_audio.server --host 127.0.0.1 --port 8002",
     "test": "pnpm --filter @ai-chat/server test",
     "build": "pnpm -r build",
     "start": "pnpm --filter @ai-chat/server start",
     "dev:web": "pnpm --filter @ai-chat/web dev",
     "dev:server": "pnpm --filter @ai-chat/server dev",
     "build:web": "pnpm --filter @ai-chat/web build",
-    "build:server": "pnpm --filter @ai-chat/server build"
+    "build:server": "pnpm --filter @ai-chat/server build",
+    "desktop:mac": "pnpm build && pnpm --dir apps/desktop start",
+    "desktop:pack:mac": "pnpm build && pnpm --dir apps/desktop pack:mac",
+    "desktop:dmg:mac": "pnpm build && pnpm --dir apps/desktop dist:mac"
   },
   "engines": {
     "node": ">=20 <25"

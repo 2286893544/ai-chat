@@ -19,6 +19,9 @@ describe('config', () => {
     assert.equal(config.chat.timeoutMs, 60_000);
     assert.equal(config.tts.maxTextChars, 2_000);
     assert.equal(config.stt.maxAudioBytes, 4 * 1024 * 1024);
+    assert.equal(config.localTts.serviceUrl, 'http://127.0.0.1:8002');
+    assert.equal(config.localTts.model, 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-8bit');
+    assert.equal(config.localTts.timeoutMs, 10 * 60_000);
   });
 
   it('parses comma-separated CORS origins and numeric overrides', () => {
@@ -34,6 +37,8 @@ describe('config', () => {
       MODEL_BASE_URL: 'https://open.bigmodel.cn/api/paas/v4',
       TTS_TEXT_MAX_CHARS: '512',
       STT_AUDIO_MAX_BYTES: '2048',
+      LOCAL_TTS_SERVICE_URL: 'http://127.0.0.1:9002',
+      LOCAL_TTS_AUDIO_MAX_BYTES: '4096',
     });
 
     assert.equal(config.port, 8080);
@@ -47,6 +52,8 @@ describe('config', () => {
     assert.equal(config.chat.maxContextChars, 4096);
     assert.equal(config.tts.maxTextChars, 512);
     assert.equal(config.stt.maxAudioBytes, 2048);
+    assert.equal(config.localTts.serviceUrl, 'http://127.0.0.1:9002');
+    assert.equal(config.localTts.maxAudioBytes, 4096);
   });
 
   it('falls back to wildcard CORS when origin config is blank', () => {

@@ -2,7 +2,7 @@
   <div class="page">
     <div class="page-header">
       <h1 class="page-title">角色管理</h1>
-      <button class="btn btn-primary" @click="openCreateDialog">+ 创建角色</button>
+      <ElButton type="primary" @click="openCreateDialog">创建角色</ElButton>
     </div>
 
     <div class="character-grid">
@@ -24,8 +24,8 @@
           <span class="tag" v-for="tag in char.personalityTags.slice(0, 3)" :key="tag">{{ tag }}</span>
         </div>
         <div class="card-actions">
-          <button class="btn btn-secondary btn-sm" @click.stop="router.push(`/characters/${char.id}/edit`)">编辑</button>
-          <button class="btn btn-danger btn-sm" @click.stop="handleDelete(char)">删除</button>
+          <ElButton size="small" @click.stop="router.push(`/characters/${char.id}/edit`)">编辑</ElButton>
+          <ElButton type="danger" size="small" @click.stop="handleDelete(char)">删除</ElButton>
         </div>
       </div>
     </div>
@@ -38,21 +38,22 @@
       align-center
     >
       <div class="create-options">
-        <button class="template-card custom-card" @click="createCustom">
+        <ElButton class="template-card custom-card" text @click="createCustom">
           <span class="template-icon">+</span>
           <span class="template-name">自定义角色</span>
           <span class="template-desc">从空白表单开始，自己填写人设、语气和聊天边界。</span>
-        </button>
-        <button
+        </ElButton>
+        <ElButton
           v-for="preset in rolePresets"
           :key="preset.id"
           class="template-card"
+          text
           @click="usePreset(preset)"
         >
           <span class="template-name">{{ preset.name }}</span>
           <span class="template-desc">{{ preset.description }}</span>
           <span class="template-tags">{{ preset.personalityTags.slice(0, 3).join(' · ') }}</span>
-        </button>
+        </ElButton>
       </div>
     </ElDialog>
   </div>
@@ -61,7 +62,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElDialog, ElMessage } from 'element-plus'
+import { ElDialog, ElMessage, ElMessageBox } from 'element-plus'
 import { useCharacterStore } from '../stores/character'
 import { useConversationStore } from '../stores/conversation'
 import type { Character } from '@ai-chat/shared'
@@ -112,10 +113,17 @@ function usePreset(preset: RolePreset) {
 }
 
 async function handleDelete(char: Character) {
-  if (confirm(`确定删除角色「${char.name}」吗？`)) {
-    await characterStore.deleteCharacter(char.id)
-    ElMessage.success(`已删除「${char.name}」`)
+  try {
+    await ElMessageBox.confirm(`确定删除角色「${char.name}」吗？`, '删除角色', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
   }
+  await characterStore.deleteCharacter(char.id)
+  ElMessage.success(`已删除「${char.name}」`)
 }
 </script>
 
@@ -141,6 +149,8 @@ async function handleDelete(char: Character) {
 }
 
 .template-card {
+  width: 100%;
+  height: auto;
   min-height: 144px;
   padding: 16px;
   border-radius: var(--radius-sm);
@@ -150,7 +160,20 @@ async function handleDelete(char: Character) {
   text-align: left;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: 8px;
+  margin: 0;
+  white-space: normal;
+}
+
+.template-card :deep(> span) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
 }
 
 .template-card:hover {

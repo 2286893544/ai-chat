@@ -18,7 +18,7 @@ const PORT = appConfig.port;
 // --- Middleware ---
 app.use(cors({
   origin: appConfig.corsOrigins.includes('*') ? '*' : appConfig.corsOrigins,
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'X-Model-Api-Key', 'X-DeepSeek-Api-Key', 'X-ElevenLabs-Api-Key'],
 }));
 

@@ -8,6 +8,12 @@ import type { AppErrorResponse } from '@ai-chat/shared';
 import logger from '../logger.js';
 import { appConfig } from '../config.js';
 import { fetchWithTimeout } from '../utils/timeout.js';
+import {
+  createLocalTtsVoice,
+  deleteLocalTtsVoice,
+  getLocalTtsVoice,
+  listLocalTtsVoices,
+} from '../services/localTtsVoices.js';
 
 const router = Router();
 
@@ -123,7 +129,7 @@ function resolveEdgeEmotionProsody(
 }
 
 const ttsSchema = z.object({
-  provider: z.enum(['edge', 'elevenlabs', 'zhipu']).default('elevenlabs'),
+  provider: z.enum(['edge', 'elevenlabs', 'zhipu', 'qwen-local']).default('elevenlabs'),
   text: z.string().min(1).max(appConfig.tts.maxTextChars),
   voiceId: z.string().min(1).max(120).default('JBFqnCBsd6RMkjVDRZzb'),
   modelId: z.string().min(1).max(120).default('eleven_multilingual_v2'),
@@ -146,6 +152,72 @@ const ttsSchema = z.object({
   zhipuEmotionStyle: z.enum(zhipuEmotionStyles).default('auto'),
   zhipuEmotionGranularity: z.enum(['sentence', 'paragraph']).default('sentence'),
   zhipuBaseURL: z.string().url().default(ZHIPU_TTS_BASE_URL),
+  localVoiceId: z.string().uuid().optional(),
+});
+
+const localVoiceSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  transcript: z.string().trim().min(1).max(1_000),
+  audioDataUrl: z.string().min(1),
+});
+
+router.get('/api/tts/local/health', async (_req: Request, res: Response) => {
+  try {
+    const response = await fetchWithTimeout(`${appConfig.localTts.serviceUrl}/`, {}, 5_000);
+    res.status(response.ok ? 200 : 503).json({
+      ok: response.ok,
+      serviceUrl: appConfig.localTts.serviceUrl,
+      model: appConfig.localTts.model,
+    });
+  } catch {
+    res.status(503).json({
+      ok: false,
+      serviceUrl: appConfig.localTts.serviceUrl,
+      model: appConfig.localTts.model,
+    });
+  }
+});
+
+router.get('/api/tts/local/voices', async (_req: Request, res: Response) => {
+  try {
+    res.json({ ok: true, voices: await listLocalTtsVoices() });
+  } catch (error: any) {
+    res.status(500).json({ ok: false, code: 'TTS_REQUEST_FAILED', message: error.message || '读取本地音色失败' });
+  }
+});
+
+router.post('/api/tts/local/voices', async (req: Request, res: Response) => {
+  const parsedBody = localVoiceSchema.safeParse(req.body || {});
+  if (!parsedBody.success) {
+    res.status(400).json({
+      ok: false,
+      code: 'TTS_REQUEST_FAILED',
+      message: parsedBody.error.issues[0]?.message || '音色样本参数无效',
+    });
+    return;
+  }
+
+  try {
+    res.status(201).json({
+      ok: true,
+      voice: await createLocalTtsVoice({
+        name: parsedBody.data.name!,
+        transcript: parsedBody.data.transcript!,
+        audioDataUrl: parsedBody.data.audioDataUrl!,
+      }),
+    });
+  } catch (error: any) {
+    res.status(400).json({ ok: false, code: 'TTS_REQUEST_FAILED', message: error.message || '保存本地音色失败' });
+  }
+});
+
+router.delete('/api/tts/local/voices/:id', async (req: Request, res: Response) => {
+  try {
+    await deleteLocalTtsVoice(req.params.id);
+    res.json({ ok: true });
+  } catch {
+    res.status(404).json({ ok: false, code: 'TTS_REQUEST_FAILED', message: '音色不存在' });
+  }
 });
 
 router.post('/api/tts/speak', async (req: Request, res: Response) => {
@@ -181,7 +253,55 @@ router.post('/api/tts/speak', async (req: Request, res: Response) => {
       zhipuVolume,
       zhipuStream,
       zhipuBaseURL,
+      localVoiceId,
     } = parsedBody.data;
+
+    if (provider === 'qwen-local') {
+      if (!localVoiceId) {
+        res.status(400).json({ ok: false, code: 'TTS_REQUEST_FAILED', message: '请先选择一个本地复刻音色' });
+        return;
+      }
+
+      const voice = await getLocalTtsVoice(localVoiceId).catch(() => null);
+      if (!voice) {
+        res.status(404).json({ ok: false, code: 'TTS_REQUEST_FAILED', message: '本地复刻音色不存在' });
+        return;
+      }
+
+      const response = await fetchWithTimeout(
+        `${appConfig.localTts.serviceUrl}/v1/audio/speech`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: appConfig.localTts.model,
+            input: text,
+            ref_audio: voice.audioPath,
+            ref_text: voice.transcript,
+            response_format: 'wav',
+            stream: false,
+          }),
+        },
+        appConfig.localTts.timeoutMs,
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown local TTS error');
+        logger.error({ status: response.status, errorText }, 'Local Qwen TTS error');
+        res.status(502).json({
+          ok: false,
+          code: 'TTS_REQUEST_FAILED',
+          message: `本地 Qwen3-TTS 生成失败：${errorText.slice(0, 200)}`,
+        });
+        return;
+      }
+
+      const audio = Buffer.from(await response.arrayBuffer());
+      res.setHeader('Content-Type', response.headers.get('content-type') || 'audio/wav');
+      res.setHeader('Cache-Control', 'no-store');
+      res.send(audio);
+      return;
+    }
 
     if (provider === 'edge') {
       const prosody = resolveEdgeEmotionProsody(text, {

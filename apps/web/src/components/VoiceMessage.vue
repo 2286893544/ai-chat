@@ -1,8 +1,8 @@
 <template>
   <div class="voice-message">
-    <button class="voice-play-btn" @click="togglePlay" :title="isPlaying || isLoading ? '停止' : '播放'">
+    <ElButton class="voice-play-btn" text circle @click="togglePlay" :title="isPlaying || isLoading ? '停止' : '播放'">
       {{ isPlaying || isLoading ? '⏸' : '▶' }}
-    </button>
+    </ElButton>
     <div class="voice-waveform">
       <div
         v-for="i in 20"

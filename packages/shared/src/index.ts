@@ -20,7 +20,15 @@ export interface SafetyConfig {
   safetyGuardrails: boolean;
 }
 
-export type TTSProvider = 'browser' | 'edge' | 'elevenlabs' | 'zhipu';
+export type TTSProvider = 'browser' | 'edge' | 'elevenlabs' | 'zhipu' | 'qwen-local';
+
+export interface LocalTtsVoice {
+  id: string;
+  name: string;
+  transcript: string;
+  durationSeconds: number;
+  createdAt: string;
+}
 
 export interface TTSConfig {
   provider: TTSProvider;
@@ -43,6 +51,7 @@ export interface TTSConfig {
   zhipuEmotionEnabled?: boolean;
   zhipuEmotionStyle?: 'auto' | 'happy' | 'sad' | 'worried' | 'tired' | 'gentle' | 'excited';
   zhipuEmotionGranularity?: 'sentence' | 'paragraph';
+  localVoiceId?: string;
   browserRate?: number;
   browserPitch?: number;
 }

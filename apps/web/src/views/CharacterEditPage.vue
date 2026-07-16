@@ -2,45 +2,45 @@
   <div class="page">
     <div class="page-header">
       <h1 class="page-title">{{ isNew ? '创建角色' : '编辑角色' }}</h1>
-      <button class="btn btn-secondary" @click="router.back()">返回</button>
+      <ElButton @click="router.back()">返回</ElButton>
     </div>
 
     <div class="card">
-      <div class="tabs">
-        <div class="tab" :class="{ active: activeTab === 'basic' }" @click="activeTab = 'basic'">基础信息</div>
-        <div class="tab" :class="{ active: activeTab === 'personality' }" @click="activeTab = 'personality'">性格脾气</div>
-        <div class="tab" :class="{ active: activeTab === 'hobbies' }" @click="activeTab = 'hobbies'">爱好话题</div>
-        <div class="tab" :class="{ active: activeTab === 'tone' }" @click="activeTab = 'tone'">语气风格</div>
-        <div class="tab" :class="{ active: activeTab === 'voice' }" @click="activeTab = 'voice'">朗读</div>
-        <div class="tab" :class="{ active: activeTab === 'rules' }" @click="activeTab = 'rules'">回复规则</div>
-        <div class="tab" :class="{ active: activeTab === 'proactive' }" @click="activeTab = 'proactive'">主动聊天</div>
-      </div>
+      <ElTabs v-model="activeTab" class="character-tabs">
+        <ElTabPane label="基础信息" name="basic" />
+        <ElTabPane label="性格脾气" name="personality" />
+        <ElTabPane label="爱好话题" name="hobbies" />
+        <ElTabPane label="语气风格" name="tone" />
+        <ElTabPane label="朗读" name="voice" />
+        <ElTabPane label="回复规则" name="rules" />
+        <ElTabPane label="主动聊天" name="proactive" />
+      </ElTabs>
 
       <!-- 基础信息 -->
       <div v-show="activeTab === 'basic'" class="tab-content">
         <div class="form-group">
           <label class="form-label">角色名称</label>
-          <input class="form-input" v-model="form.name" placeholder="例如：小夏、冷面顾问、温柔姐姐" />
+          <ElInput v-model="form.name" placeholder="例如：小夏、冷面顾问、温柔姐姐" />
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">性别设定</label>
-            <select class="form-input" v-model="form.gender">
-              <option value="female">女性</option>
-              <option value="male">男性</option>
-              <option value="neutral">中性</option>
-              <option value="unknown">不限</option>
-              <option value="custom">自定义</option>
-            </select>
+            <ElSelect v-model="form.gender" class="ui-control">
+              <ElOption label="女性" value="female" />
+              <ElOption label="男性" value="male" />
+              <ElOption label="中性" value="neutral" />
+              <ElOption label="不限" value="unknown" />
+              <ElOption label="自定义" value="custom" />
+            </ElSelect>
           </div>
           <div class="form-group">
             <label class="form-label">年龄设定</label>
-            <input class="form-input" v-model="form.ageText" placeholder="例如：20岁左右" />
+            <ElInput v-model="form.ageText" placeholder="例如：20岁左右" />
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">身份背景</label>
-          <textarea class="form-input" v-model="form.background" placeholder="例如：独立设计师、高冷猫系朋友、职场导师" rows="3"></textarea>
+          <ElInput v-model="form.background" type="textarea" :rows="3" placeholder="例如：独立设计师、高冷猫系朋友、职场导师" />
         </div>
         <div class="form-group">
           <label class="form-label">和用户的关系</label>
@@ -78,20 +78,20 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">情绪表达</label>
-            <select class="form-input" v-model="form.emotionExpression">
-              <option value="克制">克制</option>
-              <option value="明显">明显</option>
-              <option value="夸张">夸张</option>
-              <option value="平静">平静</option>
-            </select>
+            <ElSelect v-model="form.emotionExpression" class="ui-control">
+              <ElOption label="克制" value="克制" />
+              <ElOption label="明显" value="明显" />
+              <ElOption label="夸张" value="夸张" />
+              <ElOption label="平静" value="平静" />
+            </ElSelect>
           </div>
           <div class="form-group">
             <label class="form-label">共情程度</label>
-            <select class="form-input" v-model="form.empathyLevel">
-              <option value="低">低</option>
-              <option value="中">中</option>
-              <option value="高">高</option>
-            </select>
+            <ElSelect v-model="form.empathyLevel" class="ui-control">
+              <ElOption label="低" value="低" />
+              <ElOption label="中" value="中" />
+              <ElOption label="高" value="高" />
+            </ElSelect>
           </div>
         </div>
       </div>
@@ -121,34 +121,34 @@
         <div class="form-group">
           <label class="form-label">语气</label>
           <TagsInput v-model="form.toneTags" :suggestions="['温柔','俏皮','冷淡','正式','轻松','撒娇','毒舌']" />
-          <input class="form-input" v-model="form.tone" placeholder="主要语气（可从上面选择或自行输入）" style="margin-top:8px" />
+          <ElInput v-model="form.tone" placeholder="主要语气（可从上面选择或自行输入）" style="margin-top:8px" />
         </div>
         <div class="form-group">
           <label class="form-label">说话风格</label>
-          <input class="form-input" v-model="form.speakingStyle" placeholder="例如：喜欢用比喻、说话带尾音" />
+          <ElInput v-model="form.speakingStyle" placeholder="例如：喜欢用比喻、说话带尾音" />
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">回复长度</label>
-            <select class="form-input" v-model="form.replyLength">
-              <option value="short">短句</option>
-              <option value="medium">中等</option>
-              <option value="long">详细</option>
-            </select>
+            <ElSelect v-model="form.replyLength" class="ui-control">
+              <ElOption label="短句" value="short" />
+              <ElOption label="中等" value="medium" />
+              <ElOption label="详细" value="long" />
+            </ElSelect>
           </div>
           <div class="form-group">
             <label class="form-label">表情使用</label>
-            <select class="form-input" v-model="form.emojiLevel">
-              <option value="none">不用</option>
-              <option value="low">少量</option>
-              <option value="medium">适中</option>
-              <option value="high">多</option>
-            </select>
+            <ElSelect v-model="form.emojiLevel" class="ui-control">
+              <ElOption label="不用" value="none" />
+              <ElOption label="少量" value="low" />
+              <ElOption label="适中" value="medium" />
+              <ElOption label="多" value="high" />
+            </ElSelect>
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">称呼用户</label>
-          <input class="form-input" v-model="form.userNickname" placeholder="昵称、你、主人、老板..." />
+          <ElInput v-model="form.userNickname" placeholder="昵称、你、主人、老板..." />
         </div>
         <div class="form-group">
           <label class="form-label">口头禅</label>
@@ -160,87 +160,105 @@
       <div v-show="activeTab === 'voice'" class="tab-content">
         <div class="toggle-row">
           <span>使用全局朗读设置</span>
-          <div class="toggle" :class="{ active: form.useGlobalTts }" @click="form.useGlobalTts = !form.useGlobalTts">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.useGlobalTts" />
         </div>
 
         <template v-if="!form.useGlobalTts">
           <div class="form-group">
             <label class="form-label">角色朗读引擎</label>
-            <select class="form-input" v-model="form.ttsProvider">
-              <option value="browser">系统朗读（本机浏览器）</option>
-              <option value="edge">Edge TTS（免费，无需 Key）</option>
-              <option value="elevenlabs">ElevenLabs（更自然、有情绪）</option>
-              <option value="zhipu">智谱 GLM-TTS（使用模型 API Key）</option>
-            </select>
+            <ElSelect v-model="form.ttsProvider" class="ui-control">
+              <ElOption label="系统朗读（本机浏览器）" value="browser" />
+              <ElOption label="本地语音复刻（Qwen3-TTS）" value="qwen-local" />
+              <ElOption label="Edge TTS（免费，无需 Key）" value="edge" />
+              <ElOption label="ElevenLabs（更自然、有情绪）" value="elevenlabs" />
+              <ElOption label="智谱 GLM-TTS" value="zhipu" />
+            </ElSelect>
           </div>
+
+          <template v-if="form.ttsProvider === 'qwen-local'">
+            <div class="form-group">
+              <label class="form-label">复刻音色</label>
+              <div class="voice-input-row">
+                <ElSelect v-model="form.localTtsVoiceId" class="ui-control" :disabled="localVoices.length === 0">
+                  <ElOption :label="localVoices.length ? '请选择音色' : '请先在设置中创建音色'" value="" />
+                  <ElOption
+                    v-for="voice in localVoices"
+                    :key="voice.id"
+                    :label="`${voice.name} · ${voice.durationSeconds.toFixed(1)} 秒`"
+                    :value="voice.id"
+                  />
+                </ElSelect>
+                <ElButton
+                  size="small"
+                  :disabled="!form.localTtsVoiceId || previewingVoice !== null"
+                  @click="handlePreviewLocalVoice"
+                >
+                  ▶ {{ previewingVoice === `qwen-local:${form.localTtsVoiceId}` ? '生成中' : '试听' }}
+                </ElButton>
+              </div>
+            </div>
+          </template>
 
           <template v-if="form.ttsProvider === 'edge'">
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">中文音色</label>
-                <select class="form-input" v-model="form.edgeTtsVoice">
-                  <option v-for="voice in edgeTtsVoices" :key="voice.value" :value="voice.value">
-                    {{ voice.label }}
-                  </option>
-                </select>
+                <ElSelect v-model="form.edgeTtsVoice" class="ui-control">
+                  <ElOption v-for="voice in edgeTtsVoices" :key="voice.value" :label="voice.label" :value="voice.value" />
+                </ElSelect>
                 <div class="voice-preview-grid">
-                  <button
+                  <ElButton
                     v-for="voice in edgeTtsVoices"
                     :key="voice.value"
-                    class="btn btn-secondary btn-sm voice-preview-btn"
+                    class="voice-preview-btn"
                     :class="{ active: form.edgeTtsVoice === voice.value }"
                     :disabled="previewingVoice !== null"
+                    size="small"
                     @click="handlePreviewEdgeVoice(voice.value)"
                   >
                     ▶ {{ previewingVoice === `edge:${voice.value}` ? '播放中' : voice.label }}
-                  </button>
+                  </ElButton>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">语速</label>
-                <select class="form-input" v-model="form.edgeTtsRate">
-                  <option value="-20%">慢一点</option>
-                  <option value="-10%">稍慢</option>
-                  <option value="+0%">正常</option>
-                  <option value="+10%">稍快</option>
-                  <option value="+20%">快一点</option>
-                </select>
+                <ElSelect v-model="form.edgeTtsRate" class="ui-control">
+                  <ElOption label="慢一点" value="-20%" />
+                  <ElOption label="稍慢" value="-10%" />
+                  <ElOption label="正常" value="+0%" />
+                  <ElOption label="稍快" value="+10%" />
+                  <ElOption label="快一点" value="+20%" />
+                </ElSelect>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">音调</label>
-                <select class="form-input" v-model="form.edgeTtsPitch">
-                  <option value="-10Hz">低一点</option>
-                  <option value="+0Hz">正常</option>
-                  <option value="+10Hz">高一点</option>
-                  <option value="+20Hz">更活泼</option>
-                </select>
+                <ElSelect v-model="form.edgeTtsPitch" class="ui-control">
+                  <ElOption label="低一点" value="-10Hz" />
+                  <ElOption label="正常" value="+0Hz" />
+                  <ElOption label="高一点" value="+10Hz" />
+                  <ElOption label="更活泼" value="+20Hz" />
+                </ElSelect>
               </div>
               <div class="form-group">
                 <label class="form-label">音量</label>
-                <select class="form-input" v-model="form.edgeTtsVolume">
-                  <option value="-20%">小一点</option>
-                  <option value="+0%">正常</option>
-                  <option value="+20%">大一点</option>
-                </select>
+                <ElSelect v-model="form.edgeTtsVolume" class="ui-control">
+                  <ElOption label="小一点" value="-20%" />
+                  <ElOption label="正常" value="+0%" />
+                  <ElOption label="大一点" value="+20%" />
+                </ElSelect>
               </div>
             </div>
             <div class="toggle-row">
               <span>隐藏情绪控制</span>
-              <div class="toggle" :class="{ active: form.edgeTtsEmotionEnabled }" @click="form.edgeTtsEmotionEnabled = !form.edgeTtsEmotionEnabled">
-                <div class="toggle-knob"></div>
-              </div>
+              <ElSwitch v-model="form.edgeTtsEmotionEnabled" />
             </div>
             <div v-if="form.edgeTtsEmotionEnabled" class="form-group">
               <label class="form-label">情绪风格</label>
-              <select class="form-input" v-model="form.edgeTtsEmotionStyle">
-                <option v-for="style in edgeEmotionStyles" :key="style.value" :value="style.value">
-                  {{ style.label }}
-                </option>
-              </select>
+              <ElSelect v-model="form.edgeTtsEmotionStyle" class="ui-control">
+                <ElOption v-for="style in edgeEmotionStyles" :key="style.value" :label="style.label" :value="style.value" />
+              </ElSelect>
             </div>
             <p v-if="form.edgeTtsEmotionEnabled" class="settings-hint">
               不会向朗读文本添加可读标签，只会在后端按风格调整 Edge TTS 的语速、音调和音量。
@@ -250,107 +268,102 @@
           <template v-if="form.ttsProvider === 'elevenlabs'">
             <div class="form-group">
               <label class="form-label">ElevenLabs API Key</label>
-              <input class="form-input" type="password" v-model="form.elevenLabsApiKey" placeholder="留空则使用全局 Key" />
+              <ElInput type="password" v-model="form.elevenLabsApiKey" placeholder="留空则使用全局 Key" show-password />
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Voice ID</label>
                 <div class="voice-input-row">
-                  <input class="form-input" v-model="form.elevenLabsVoiceId" placeholder="JBFqnCBsd6RMkjVDRZzb" />
-                  <button class="btn btn-secondary btn-sm" :disabled="previewingVoice !== null" @click="handlePreviewElevenLabsVoice">
+                  <ElInput v-model="form.elevenLabsVoiceId" placeholder="JBFqnCBsd6RMkjVDRZzb" />
+                  <ElButton size="small" :disabled="previewingVoice !== null" @click="handlePreviewElevenLabsVoice">
                     ▶ {{ previewingVoice === 'elevenlabs:current' ? '播放中' : '试听' }}
-                  </button>
+                  </ElButton>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">模型</label>
-                <select class="form-input" v-model="form.elevenLabsModelId">
-                  <option value="eleven_multilingual_v2">multilingual v2（稳定自然）</option>
-                  <option value="eleven_turbo_v2_5">turbo v2.5（更快）</option>
-                  <option value="eleven_flash_v2_5">flash v2.5（低延迟）</option>
-                </select>
+                <ElSelect v-model="form.elevenLabsModelId" class="ui-control">
+                  <ElOption label="multilingual v2（稳定自然）" value="eleven_multilingual_v2" />
+                  <ElOption label="turbo v2.5（更快）" value="eleven_turbo_v2_5" />
+                  <ElOption label="flash v2.5（低延迟）" value="eleven_flash_v2_5" />
+                </ElSelect>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">稳定度 {{ form.elevenLabsStability }}</label>
-                <input class="form-input" type="range" min="0" max="1" step="0.05" v-model="form.elevenLabsStability" />
+                <ElSlider v-model="form.elevenLabsStability" :min="0" :max="1" :step="0.05" />
               </div>
               <div class="form-group">
                 <label class="form-label">相似度 {{ form.elevenLabsSimilarityBoost }}</label>
-                <input class="form-input" type="range" min="0" max="1" step="0.05" v-model="form.elevenLabsSimilarityBoost" />
+                <ElSlider v-model="form.elevenLabsSimilarityBoost" :min="0" :max="1" :step="0.05" />
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">表现力 {{ form.elevenLabsStyle }}</label>
-              <input class="form-input" type="range" min="0" max="1" step="0.05" v-model="form.elevenLabsStyle" />
+              <ElSlider v-model="form.elevenLabsStyle" :min="0" :max="1" :step="0.05" />
             </div>
           </template>
 
           <template v-if="form.ttsProvider === 'zhipu'">
-            <p class="settings-hint">使用全局模型 API Key。</p>
+            <p class="settings-hint">使用全局智谱朗读 API Key；未配置时兼容使用模型 API Key。</p>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">音色</label>
-                <select class="form-input" v-model="form.zhipuTtsVoice">
-                  <option v-for="voice in zhipuTtsVoices" :key="voice.value" :value="voice.value">
-                    {{ voice.label }}
-                  </option>
-                </select>
+                <ElSelect v-model="form.zhipuTtsVoice" class="ui-control">
+                  <ElOption v-for="voice in zhipuTtsVoices" :key="voice.value" :label="voice.label" :value="voice.value" />
+                </ElSelect>
                 <div class="voice-preview-grid">
-                  <button
+                  <ElButton
                     v-for="voice in zhipuTtsVoices"
                     :key="voice.value"
-                    class="btn btn-secondary btn-sm voice-preview-btn"
+                    class="voice-preview-btn"
                     :class="{ active: form.zhipuTtsVoice === voice.value }"
                     :disabled="previewingVoice !== null"
+                    size="small"
                     @click="handlePreviewZhipuVoice(voice.value)"
                   >
                     ▶ {{ previewingVoice === `zhipu:${voice.value}` ? '播放中' : voice.label }}
-                  </button>
+                  </ElButton>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">语速</label>
-                <select class="form-input" v-model="form.zhipuTtsSpeed">
-                  <option value="0.8">稍慢</option>
-                  <option value="1">标准</option>
-                  <option value="1.2">推荐</option>
-                  <option value="1.5">快速</option>
-                  <option value="1.8">很快</option>
-                  <option value="2">最快</option>
-                </select>
+                <ElSelect v-model="form.zhipuTtsSpeed" class="ui-control">
+                  <ElOption label="稍慢" value="0.8" />
+                  <ElOption label="标准" value="1" />
+                  <ElOption label="推荐" value="1.2" />
+                  <ElOption label="快速" value="1.5" />
+                  <ElOption label="很快" value="1.8" />
+                  <ElOption label="最快" value="2" />
+                </ElSelect>
               </div>
               <div class="form-group">
                 <label class="form-label">音量</label>
-                <select class="form-input" v-model="form.zhipuTtsVolume">
-                  <option value="0.8">稍低</option>
-                  <option value="1">正常</option>
-                  <option value="1.2">稍高</option>
-                </select>
+                <ElSelect v-model="form.zhipuTtsVolume" class="ui-control">
+                  <ElOption label="稍低" value="0.8" />
+                  <ElOption label="正常" value="1" />
+                  <ElOption label="稍高" value="1.2" />
+                </ElSelect>
               </div>
             </div>
             <div class="toggle-row">
               <span>超情感表达</span>
-              <div class="toggle" :class="{ active: form.zhipuTtsEmotionEnabled }" @click="form.zhipuTtsEmotionEnabled = !form.zhipuTtsEmotionEnabled">
-                <div class="toggle-knob"></div>
-              </div>
+              <ElSwitch v-model="form.zhipuTtsEmotionEnabled" />
             </div>
             <div v-if="form.zhipuTtsEmotionEnabled" class="form-row">
               <div class="form-group">
                 <label class="form-label">情绪风格</label>
-                <select class="form-input" v-model="form.zhipuTtsEmotionStyle">
-                  <option v-for="style in zhipuEmotionStyles" :key="style.value" :value="style.value">
-                    {{ style.label }}
-                  </option>
-                </select>
+                <ElSelect v-model="form.zhipuTtsEmotionStyle" class="ui-control">
+                  <ElOption v-for="style in zhipuEmotionStyles" :key="style.value" :label="style.label" :value="style.value" />
+                </ElSelect>
               </div>
               <div class="form-group">
                 <label class="form-label">标注粒度</label>
-                <select class="form-input" v-model="form.zhipuTtsEmotionGranularity">
-                  <option value="sentence">每句话</option>
-                  <option value="paragraph">每一段</option>
-                </select>
+                <ElSelect v-model="form.zhipuTtsEmotionGranularity" class="ui-control">
+                  <ElOption label="每句话" value="sentence" />
+                  <ElOption label="每一段" value="paragraph" />
+                </ElSelect>
               </div>
             </div>
             <p v-if="form.zhipuTtsEmotionEnabled" class="settings-hint">
@@ -367,45 +380,31 @@
         </div>
         <div class="toggle-row">
           <span>主动追问</span>
-          <div class="toggle" :class="{ active: form.followUp }" @click="form.followUp = !form.followUp">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.followUp" />
         </div>
         <div class="toggle-row">
           <span>记住上下文</span>
-          <div class="toggle" :class="{ active: form.rememberContext }" @click="form.rememberContext = !form.rememberContext">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.rememberContext" />
         </div>
         <div class="toggle-row">
           <span>避免长篇大论</span>
-          <div class="toggle" :class="{ active: form.avoidLong }" @click="form.avoidLong = !form.avoidLong">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.avoidLong" />
         </div>
         <div class="toggle-row">
           <span>用户低落时安慰</span>
-          <div class="toggle" :class="{ active: form.comfortOnLow }" @click="form.comfortOnLow = !form.comfortOnLow">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.comfortOnLow" />
         </div>
         <div class="toggle-row">
           <span>允许调侃</span>
-          <div class="toggle" :class="{ active: form.allowTease }" @click="form.allowTease = !form.allowTease">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.allowTease" />
         </div>
         <div class="toggle-row">
           <span>允许暧昧语气</span>
-          <div class="toggle" :class="{ active: form.allowFlirty }" @click="form.allowFlirty = !form.allowFlirty">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.allowFlirty" />
         </div>
         <div class="toggle-row">
           <span>安全边界提示</span>
-          <div class="toggle" :class="{ active: form.safetyGuard }" @click="form.safetyGuard = !form.safetyGuard">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.safetyGuard" />
         </div>
       </div>
 
@@ -413,61 +412,56 @@
       <div v-show="activeTab === 'proactive'" class="tab-content">
         <div class="toggle-row">
           <span>开启主动聊天</span>
-          <div class="toggle" :class="{ active: form.proactiveEnabled }" @click="form.proactiveEnabled = !form.proactiveEnabled">
-            <div class="toggle-knob"></div>
-          </div>
+          <ElSwitch v-model="form.proactiveEnabled" />
         </div>
         <template v-if="form.proactiveEnabled">
           <div class="form-group">
             <label class="form-label">主动程度</label>
-            <select class="form-input" v-model="form.initiativeLevel">
-              <option value="low">低（很少主动）</option>
-              <option value="medium">中（偶尔主动）</option>
-              <option value="high">高（经常主动）</option>
-            </select>
+            <ElSelect v-model="form.initiativeLevel" class="ui-control">
+              <ElOption label="低（很少主动）" value="low" />
+              <ElOption label="中（偶尔主动）" value="medium" />
+              <ElOption label="高（经常主动）" value="high" />
+            </ElSelect>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">最短间隔（分钟）</label>
-              <input type="number" class="form-input" v-model.number="form.minInterval" min="1" />
+              <ElInputNumber v-model="form.minInterval" :min="1" controls-position="right" class="ui-control" />
             </div>
             <div class="form-group">
               <label class="form-label">每日最大次数</label>
-              <input type="number" class="form-input" v-model.number="form.maxDaily" min="1" />
+              <ElInputNumber v-model="form.maxDaily" :min="1" controls-position="right" class="ui-control" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">允许开始时间</label>
-              <input type="time" class="form-input" v-model="form.activeStart" />
+              <ElTimePicker v-model="form.activeStart" format="HH:mm" value-format="HH:mm" class="ui-control" />
             </div>
             <div class="form-group">
               <label class="form-label">允许结束时间</label>
-              <input type="time" class="form-input" v-model="form.activeEnd" />
+              <ElTimePicker v-model="form.activeEnd" format="HH:mm" value-format="HH:mm" class="ui-control" />
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">主动话题来源</label>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <label v-for="src in topicSources" :key="src.value" style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
-                <input type="checkbox" :value="src.value" v-model="form.topicSources" />
+            <ElCheckboxGroup v-model="form.topicSources" class="topic-source-group">
+              <ElCheckbox v-for="src in topicSources" :key="src.value" :value="src.value">
                 {{ src.label }}
-              </label>
-            </div>
+              </ElCheckbox>
+            </ElCheckboxGroup>
           </div>
           <div class="toggle-row">
             <span>勿扰模式</span>
-            <div class="toggle" :class="{ active: form.doNotDisturb }" @click="form.doNotDisturb = !form.doNotDisturb">
-              <div class="toggle-knob"></div>
-            </div>
+            <ElSwitch v-model="form.doNotDisturb" />
           </div>
         </template>
       </div>
 
       <div style="margin-top: 24px; display: flex; gap: 12px;">
-        <button class="btn btn-primary" @click="handleSave">保存角色</button>
-        <button class="btn btn-secondary" @click="router.back()">取消</button>
-        <button class="btn btn-secondary" style="margin-left:auto" @click="handleReset">重置默认</button>
+        <ElButton type="primary" @click="handleSave">保存角色</ElButton>
+        <ElButton @click="router.back()">取消</ElButton>
+        <ElButton style="margin-left:auto" @click="handleReset">重置默认</ElButton>
       </div>
     </div>
   </div>
@@ -482,7 +476,7 @@ import { useVoiceStore } from '../stores/voice'
 import TagsInput from '../components/TagsInput.vue'
 import { rolePresets, type RolePreset } from '../local-data/rolePresets'
 import { edgeEmotionStyles, edgeTtsVoices, ttsPreviewText, zhipuEmotionStyles, zhipuTtsVoices } from '../local-data/ttsVoices'
-import type { TTSConfig } from '@ai-chat/shared'
+import type { LocalTtsVoice, TTSConfig } from '@ai-chat/shared'
 import { v4 as uuidv4 } from 'uuid'
 
 const router = useRouter()
@@ -493,6 +487,7 @@ const voiceStore = useVoiceStore()
 const isNew = computed(() => route.params.id === 'new' || !route.params.id)
 const activeTab = ref('basic')
 const previewingVoice = ref<string | null>(null)
+const localVoices = ref<LocalTtsVoice[]>([])
 
 const relationshipSuggestions = [
   '朋友',
@@ -535,7 +530,8 @@ const defaultForm = () => ({
   userNickname: '',
   // Voice
   useGlobalTts: true,
-  ttsProvider: (localStorage.getItem('ttsProvider') || 'browser') as 'browser' | 'edge' | 'elevenlabs' | 'zhipu',
+  ttsProvider: (localStorage.getItem('ttsProvider') || 'browser') as TTSConfig['provider'],
+  localTtsVoiceId: localStorage.getItem('localTtsVoiceId') || '',
   edgeTtsVoice: localStorage.getItem('edgeTtsVoice') || 'zh-CN-XiaoxiaoNeural',
   edgeTtsRate: localStorage.getItem('edgeTtsRate') || '+0%',
   edgeTtsPitch: localStorage.getItem('edgeTtsPitch') || '+0Hz',
@@ -629,6 +625,14 @@ function handlePreviewZhipuVoice(voice: string) {
   })
 }
 
+function handlePreviewLocalVoice() {
+  if (!form.localTtsVoiceId) return
+  return previewVoice(`qwen-local:${form.localTtsVoiceId}`, {
+    provider: 'qwen-local',
+    localVoiceId: form.localTtsVoiceId,
+  })
+}
+
 function applyPreset(preset: RolePreset) {
   Object.assign(form, {
     name: preset.name,
@@ -660,6 +664,16 @@ function applyPreset(preset: RolePreset) {
 }
 
 onMounted(async () => {
+  try {
+    const response = await fetch('/api/tts/local/voices')
+    if (response.ok) {
+      const data = await response.json() as { voices?: LocalTtsVoice[] }
+      localVoices.value = data.voices || []
+    }
+  } catch {
+    localVoices.value = []
+  }
+
   if (characterStore.characters.length === 0) {
     await characterStore.loadCharacters()
   }
@@ -692,6 +706,7 @@ onMounted(async () => {
         userNickname: char.userNickname || '',
         useGlobalTts: !char.tts,
         ttsProvider: char.tts?.provider || localStorage.getItem('ttsProvider') || 'browser',
+        localTtsVoiceId: char.tts?.localVoiceId || localStorage.getItem('localTtsVoiceId') || '',
         edgeTtsVoice: char.tts?.edgeVoice || localStorage.getItem('edgeTtsVoice') || 'zh-CN-XiaoxiaoNeural',
         edgeTtsRate: char.tts?.edgeRate || localStorage.getItem('edgeTtsRate') || '+0%',
         edgeTtsPitch: char.tts?.edgePitch || localStorage.getItem('edgeTtsPitch') || '+0Hz',
@@ -769,6 +784,7 @@ async function handleSave() {
       zhipuEmotionEnabled: form.zhipuTtsEmotionEnabled,
       zhipuEmotionStyle: form.zhipuTtsEmotionStyle as any,
       zhipuEmotionGranularity: form.zhipuTtsEmotionGranularity as any,
+      localVoiceId: form.localTtsVoiceId || undefined,
     },
     safety: {
       followUpQuestions: form.followUp,

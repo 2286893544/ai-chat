@@ -1,0 +1,60 @@
+{
+  "name": "@ai-chat/desktop",
+  "version": "0.1.0",
+  "description": "AI Chat macOS desktop application",
+  "author": "AI Chat",
+  "private": true,
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "build": "pnpm run build:server && pnpm run build:icon",
+    "build:server": "esbuild ../server/src/index.ts --bundle --packages=external --platform=node --format=esm --target=node22 --outfile=dist/server.mjs",
+    "build:icon": "node scripts/build-mac-icon.mjs",
+    "start": "electron .",
+    "pack:mac": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dir --arm64",
+    "dist:mac": "CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --arm64"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "openai": "^4.67.0",
+    "pino": "^9.4.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.1"
+  },
+  "build": {
+    "appId": "com.aichat.desktop",
+    "productName": "AI Chat",
+    "asar": true,
+    "directories": {
+      "output": "../../release/macos"
+    },
+    "files": [
+      "src/main.mjs",
+      "dist/server.mjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "apps/web/dist"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "icon": "assets/icon.icns",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "AI Chat 需要麦克风权限用于语音输入。"
+      }
+    },
+    "dmg": {
+      "title": "AI Chat ${version}"
+    }
+  }
+}

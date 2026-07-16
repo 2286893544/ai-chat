@@ -57,9 +57,11 @@
         </span>
       </div>
       <div class="message-actions" v-if="msg.status === 'done' || msg.status === 'failed'">
-        <button class="message-action-btn" @click="emit('copy', msg.content)" v-if="msg.type === 'text'">复制</button>
-        <button class="message-action-btn" @click="emit('delete', msg.id)">删除</button>
-        <button
+        <ElButton text size="small" class="message-action-btn" @click="emit('copy', msg.content)" v-if="msg.type === 'text'">复制</ElButton>
+        <ElButton text size="small" class="message-action-btn" @click="emit('delete', msg.id)">删除</ElButton>
+        <ElButton
+          text
+          size="small"
           class="message-action-btn"
           :class="{ active: speechMessageId === msg.id }"
           @click="handleSpeechAction(msg)"
@@ -68,7 +70,7 @@
           <span v-if="speechMessageId === msg.id && speechState === 'loading'">取消</span>
           <span v-else-if="speechMessageId === msg.id && speechState === 'playing'">停止</span>
           <span v-else>朗读</span>
-        </button>
+        </ElButton>
       </div>
     </div>
   </div>

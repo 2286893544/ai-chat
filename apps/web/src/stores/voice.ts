@@ -69,6 +69,7 @@ function resolveTTSConfig(roleConfig?: TTSConfig): TTSConfig {
     zhipuEmotionEnabled: localStorage.getItem(storageKeys.zhipuTtsEmotionEnabled) === 'true',
     zhipuEmotionStyle: (localStorage.getItem(storageKeys.zhipuTtsEmotionStyle) as TTSConfig['zhipuEmotionStyle']) || defaultPreferences.tts.zhipuEmotionStyle,
     zhipuEmotionGranularity: (localStorage.getItem(storageKeys.zhipuTtsEmotionGranularity) as TTSConfig['zhipuEmotionGranularity']) || defaultPreferences.tts.zhipuEmotionGranularity,
+    localVoiceId: localStorage.getItem(storageKeys.localTtsVoiceId) || '',
     browserRate: localNumber('browserTtsRate', 0.96),
     browserPitch: localNumber('browserTtsPitch', 1.06),
   }
@@ -272,6 +273,11 @@ export const useVoiceStore = defineStore('voice', () => {
         return
       }
 
+      if (config.provider === 'qwen-local') {
+        await speakWithQwenLocal(spokenText, controller.signal, config)
+        return
+      }
+
       await speakWithBrowser(spokenText, config)
     } finally {
       if (isCurrentSpeechRequest(requestVersion, controller)) {
@@ -349,8 +355,9 @@ export const useVoiceStore = defineStore('voice', () => {
 
   async function speakWithZhipu(text: string, signal: AbortSignal, config: TTSConfig): Promise<void> {
     const apiKeyStore = useApiKeyStore()
-    if (!apiKeyStore.apiKey) {
-      throw new Error('请先在设置中填写智谱 API Key')
+    const apiKey = localStorage.getItem(storageKeys.zhipuTtsApiKey)?.trim() || apiKeyStore.apiKey
+    if (!apiKey) {
+      throw new Error('请先在设置中填写智谱朗读 API Key')
     }
 
     const defaultSpeed = Number(defaultPreferences.tts.zhipuSpeed)
@@ -362,7 +369,7 @@ export const useVoiceStore = defineStore('voice', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Model-Api-Key': apiKeyStore.apiKey,
+        'X-Model-Api-Key': apiKey,
       },
       body: JSON.stringify({
         provider: 'zhipu',
@@ -387,6 +394,28 @@ export const useVoiceStore = defineStore('voice', () => {
     if (response.headers.get('content-type')?.includes('text/event-stream')) {
       await playPcmEventStream(response, signal)
       return
+    }
+
+    await playAudioBlob(await response.blob(), signal)
+  }
+
+  async function speakWithQwenLocal(text: string, signal: AbortSignal, config: TTSConfig): Promise<void> {
+    if (!config.localVoiceId) throw new Error('请先在设置中创建并选择一个本地复刻音色')
+
+    const response = await fetch('/api/tts/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'qwen-local',
+        text,
+        localVoiceId: config.localVoiceId,
+      }),
+      signal,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: '本地 Qwen3-TTS 请求失败' }))
+      throw new Error(error.message || '本地 Qwen3-TTS 请求失败')
     }
 
     await playAudioBlob(await response.blob(), signal)

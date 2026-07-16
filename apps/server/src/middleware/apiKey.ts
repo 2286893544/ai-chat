@@ -11,9 +11,14 @@ declare module 'express' {
 /** Paths that don't require API key validation */
 const SKIP_KEY_PATHS = ['/api/keys/validate', '/api/tts/speak', '/api/stt/transcribe'];
 
+function doesNotRequireApiKey(path: string): boolean {
+  return SKIP_KEY_PATHS.includes(path) || path === '/api/tts/local' || path.startsWith('/api/tts/local/');
+}
+
 export function apiKeyMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Skip key validation for certain endpoints
-  if (SKIP_KEY_PATHS.includes(req.originalUrl)) {
+  const originalPath = req.originalUrl.split('?')[0];
+  if (doesNotRequireApiKey(originalPath)) {
     next();
     return;
   }

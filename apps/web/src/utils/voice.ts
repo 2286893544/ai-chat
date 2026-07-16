@@ -253,6 +253,71 @@ export function blobToDataURL(blob: Blob): Promise<string> {
   })
 }
 
+function encodeMonoPcmWav(samples: Float32Array, sampleRate: number): Blob {
+  const buffer = new ArrayBuffer(44 + samples.length * 2)
+  const view = new DataView(buffer)
+
+  const writeText = (offset: number, value: string) => {
+    for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i))
+  }
+
+  writeText(0, 'RIFF')
+  view.setUint32(4, 36 + samples.length * 2, true)
+  writeText(8, 'WAVE')
+  writeText(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  writeText(36, 'data')
+  view.setUint32(40, samples.length * 2, true)
+
+  for (let i = 0; i < samples.length; i += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[i]))
+    view.setInt16(44 + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' })
+}
+
+export async function convertAudioBlobToWav(
+  blob: Blob,
+  targetSampleRate = 24_000,
+): Promise<{ blob: Blob; durationSeconds: number }> {
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+  if (!AudioContextClass) throw new Error('当前浏览器不支持音频转换')
+
+  const audioContext = new AudioContextClass()
+  try {
+    const decoded = await audioContext.decodeAudioData(await blob.arrayBuffer())
+    const durationSeconds = decoded.duration
+    if (durationSeconds < 3 || durationSeconds > 30) {
+      throw new Error('音色样本时长需在 3-30 秒之间')
+    }
+
+    const outputLength = Math.ceil(durationSeconds * targetSampleRate)
+    const offlineContext = new OfflineAudioContext(1, outputLength, targetSampleRate)
+    const source = offlineContext.createBufferSource()
+    source.buffer = decoded
+    source.connect(offlineContext.destination)
+    source.start()
+    const rendered = await offlineContext.startRendering()
+
+    return {
+      blob: encodeMonoPcmWav(rendered.getChannelData(0), targetSampleRate),
+      durationSeconds,
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('3-30')) throw error
+    throw new Error('无法读取该音频，请上传 WAV、MP3、M4A 或浏览器支持的音频文件')
+  } finally {
+    await audioContext.close().catch(() => {})
+  }
+}
+
 // Convert blob to base64
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
