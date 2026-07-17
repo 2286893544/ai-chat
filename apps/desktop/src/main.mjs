@@ -52,7 +52,7 @@ async function startBackend() {
 
   process.env.NODE_ENV = 'production'
   process.env.PORT = String(desktopPort)
-  process.env.CORS_ORIGIN = appOrigin
+  process.env.CORS_ORIGIN = '*'
   process.chdir(app.isPackaged ? process.resourcesPath : repoRoot)
 
   const serverEntry = app.isPackaged
@@ -63,21 +63,29 @@ async function startBackend() {
   await waitForBackend(appOrigin)
 }
 
-function isLocalAppUrl(url) {
+function getRendererIndexPath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'renderer', 'index.html')
+    : path.join(desktopRoot, 'renderer', 'index.html')
+}
+
+function isRendererUrl(url) {
   try {
-    return new URL(url).origin === appOrigin
+    const target = new URL(url)
+    const renderer = new URL(pathToFileURL(getRendererIndexPath()).href)
+    return target.protocol === 'file:' && target.pathname === renderer.pathname
   } catch {
     return false
   }
 }
 
 function configurePermissions() {
-  session.defaultSession.setPermissionCheckHandler((_webContents, permission, requestingOrigin) => {
-    return permission === 'media' && isLocalAppUrl(requestingOrigin)
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    return permission === 'media' && isRendererUrl(webContents?.getURL() || '')
   })
 
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    callback(permission === 'media' && isLocalAppUrl(webContents.getURL()))
+    callback(permission === 'media' && isRendererUrl(webContents.getURL()))
   })
 }
 
@@ -146,15 +154,23 @@ async function createMainWindow() {
     return { action: 'deny' }
   })
 
+  window.webContents.on('console-message', (_event, details) => {
+    if (details.level === 'warning' || details.level === 'error') {
+      console.error(`[renderer] ${details.message} (${details.sourceId}:${details.lineNumber})`)
+    }
+  })
+
   window.webContents.on('will-navigate', (event, url) => {
-    if (isLocalAppUrl(url)) return
+    if (isRendererUrl(url)) return
     event.preventDefault()
     if (url.startsWith('https://') || url.startsWith('http://')) {
       void shell.openExternal(url)
     }
   })
 
-  await window.loadURL(`${appOrigin}/chat`)
+  await window.loadFile(getRendererIndexPath(), {
+    query: { apiOrigin: appOrigin },
+  })
 }
 
 app.on('second-instance', () => {

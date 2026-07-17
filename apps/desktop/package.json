@@ -7,7 +7,7 @@
   "type": "module",
   "main": "src/main.mjs",
   "scripts": {
-    "build": "pnpm run build:server && pnpm run build:icon",
+    "build": "pnpm run build:server",
     "build:server": "esbuild ../server/src/index.ts --bundle --packages=external --platform=node --format=esm --target=node22 --outfile=dist/server.mjs",
     "build:icon": "node scripts/build-mac-icon.mjs",
     "start": "electron .",
@@ -41,8 +41,8 @@
     ],
     "extraResources": [
       {
-        "from": "../web/dist",
-        "to": "apps/web/dist"
+        "from": "renderer",
+        "to": "renderer"
       }
     ],
     "mac": {
