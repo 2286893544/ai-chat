@@ -1,0 +1,57 @@
+apps/web/src/views/SettingsPage.vue
+  s_5ec312137622b9::t_aff109b5b8fc97 510
+  s_5ec312137622b9::t_5063a4848b197a 251
+  s_5ec312137622b9::t_10f93b3142af61 195-207,1162,1167-1206,1209-1216
+apps/web/src/components/VoiceCallOverlay.vue
+  s_859eeb8d5bd5be::t_a0d3fd41c7330e 1-44,46-55,57-59,61-63,65-66,68-75,77-80,82-90,92,94-431
+  s_859eeb8d5bd5be::t_cda740535df4fa 45,56,67,76,91,93
+  s_859eeb8d5bd5be::t_cb5113f7d864b2 60,64,81
+apps/web/src/stores/voice.ts
+  s_859eeb8d5bd5be::t_92802f287508ef 108,162-164,222,238,865
+  s_859eeb8d5bd5be::t_cb5113f7d864b2 723-726,733-736
+  s_859eeb8d5bd5be::t_48f25088fcd4a9 263,272,287,681,683-701,714,717
+apps/desktop/renderer/app.js
+  s_5ec312137622b9::t_c88fb9dd69893f 48-49,140,1158-1162,1167,1292-1294,1317-1319,1347,1354,1423
+apps/web/src/views/ChatPage.vue
+  s_859eeb8d5bd5be::t_cb5113f7d864b2 165,219,225,254-255,317,326,328-339,363,461,745-748
+  s_859eeb8d5bd5be::t_de65ffd946526e 398,400
+  s_859eeb8d5bd5be::t_e28bdd26070298 227,231,238-253,256-316,318-325,327,340-362,364-390,395-397,399,401-460,462-480,501-503,505-506,565-567,578,586
+  s_859eeb8d5bd5be::t_04a36c7c5ec2a1 749,771,911-923
+  s_859eeb8d5bd5be::t_f213feb197cf8e 144-147,391-394,481-482,504,543-545,547-548,564
+  s_859eeb8d5bd5be::t_49b49758a6574a 16-25,94-109,116,125,143,148-153,157-164,169-174
+  s_859eeb8d5bd5be::t_ad291d52bf89bc 750
+  s_859eeb8d5bd5be::t_c09056ca08397c 924
+apps/server/src/services/localTtsVoices.test.ts
+  s_5ec312137622b9::t_8d1ec0cb2e2d55 60-61,64,66,74-78,80
+  s_5ec312137622b9::t_5063a4848b197a 40,44,57,62-63,65,73,79,81
+apps/desktop/renderer/styles.css
+  s_5ec312137622b9::t_c88fb9dd69893f 901-909
+apps/server/src/services/localTtsVoices.ts
+  s_5ec312137622b9::t_5063a4848b197a 12
+apps/web/src/utils/voice.ts
+  s_859eeb8d5bd5be::t_92802f287508ef 13,106-108,121-122,204-235,237-244
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ea79031d3ada3e16c0a4f714470f696d1c61161f",
+  "prompts": {},
+  "sessions": {
+    "s_5ec312137622b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6f65-0a52-7d20-a4f5-fe47c3f24c74",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    },
+    "s_859eeb8d5bd5be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6ef4-c098-7591-9b05-49e368c84ada",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "许嘉航 <xujiahang0624@163.com>"
+    }
+  }
+}
