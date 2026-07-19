@@ -9,7 +9,7 @@ interface StoredLocalTtsVoice extends LocalTtsVoice {
 }
 
 const MIN_AUDIO_SECONDS = 3;
-const MAX_AUDIO_SECONDS = 30;
+const MAX_AUDIO_SECONDS = 10;
 
 function parseWavDuration(audio: Buffer): number {
   if (audio.length < 44 || audio.toString('ascii', 0, 4) !== 'RIFF' || audio.toString('ascii', 8, 12) !== 'WAVE') {

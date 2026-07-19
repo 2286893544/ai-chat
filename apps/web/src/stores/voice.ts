@@ -105,6 +105,7 @@ export const useVoiceStore = defineStore('voice', () => {
   const isPlaying = ref(false)
   const isSpeechLoading = ref(false)
   const isTranscribing = ref(false)
+  const audioLevel = ref(0)
   const recordingDuration = ref(0)
   const transcriptionText = ref('')
   const lastTranscriptionError = ref('')
@@ -157,6 +158,9 @@ export const useVoiceStore = defineStore('voice', () => {
       await recorder.start({
         onStop: (blob) => {
           lastRecordingBlob = blob
+        },
+        onVolume: (level) => {
+          audioLevel.value = level
         },
         onError: (error) => {
           console.warn('Recorder error:', error)
@@ -215,6 +219,7 @@ export const useVoiceStore = defineStore('voice', () => {
     }
     lastRecordingBlob = null
     transcriptionText.value = ''
+    audioLevel.value = 0
     resetRecordingState()
   }
 
@@ -230,6 +235,7 @@ export const useVoiceStore = defineStore('voice', () => {
     isRecording.value = false
     recordingState.value = 'idle'
     recordingDuration.value = 0
+    audioLevel.value = 0
     recognizer = null
     recorder = null
   }
@@ -254,7 +260,7 @@ export const useVoiceStore = defineStore('voice', () => {
         await speakWithElevenLabs(spokenText, controller.signal, config).catch((error) => {
           if (controller.signal.aborted || !isCurrentSpeechRequest(requestVersion, controller)) return
           console.warn('ElevenLabs TTS failed, falling back to browser speech:', error)
-          return speakWithBrowser(spokenText, config)
+          return speakWithBrowser(spokenText, config, controller.signal)
         })
         return
       }
@@ -263,7 +269,7 @@ export const useVoiceStore = defineStore('voice', () => {
         await speakWithEdge(spokenText, controller.signal, config).catch((error) => {
           if (controller.signal.aborted || !isCurrentSpeechRequest(requestVersion, controller)) return
           console.warn('Edge TTS failed, falling back to browser speech:', error)
-          return speakWithBrowser(spokenText, config)
+          return speakWithBrowser(spokenText, config, controller.signal)
         })
         return
       }
@@ -278,7 +284,7 @@ export const useVoiceStore = defineStore('voice', () => {
         return
       }
 
-      await speakWithBrowser(spokenText, config)
+      await speakWithBrowser(spokenText, config, controller.signal)
     } finally {
       if (isCurrentSpeechRequest(requestVersion, controller)) {
         isSpeechLoading.value = false
@@ -672,8 +678,27 @@ export const useVoiceStore = defineStore('voice', () => {
     })
   }
 
-  function speakWithBrowser(text: string, config: TTSConfig): Promise<void> {
+  function speakWithBrowser(text: string, config: TTSConfig, signal: AbortSignal): Promise<void> {
     return new Promise((resolve, reject) => {
+      let settled = false
+      const finish = (error?: unknown) => {
+        if (settled) return
+        settled = true
+        signal.removeEventListener('abort', handleAbort)
+        isPlaying.value = false
+        if (error) reject(error)
+        else resolve()
+      }
+      const handleAbort = () => {
+        stopSpeaking()
+        finish()
+      }
+
+      if (signal.aborted) {
+        finish()
+        return
+      }
+      signal.addEventListener('abort', handleAbort, { once: true })
       stopSpeaking()
       isSpeechLoading.value = false
       isPlaying.value = true
@@ -686,24 +711,29 @@ export const useVoiceStore = defineStore('voice', () => {
           isPlaying.value = true
         },
         onEnd: () => {
-          isPlaying.value = false
-          resolve()
+          finish()
         },
         onError: (error: string) => {
-          isPlaying.value = false
-          reject(new Error(error))
+          finish(signal.aborted ? undefined : new Error(error))
         },
       })
     })
   }
 
-  async function transcribeAudio(blob: Blob): Promise<string> {
+  async function transcribeAudio(
+    blob: Blob,
+    options?: { preferBrowserTranscript?: boolean },
+  ): Promise<string> {
     lastTranscriptionError.value = ''
     isTranscribing.value = true
     const browserTranscript = transcriptionText.value.trim()
     const provider = normalizeSTTProvider(localStorage.getItem('sttProvider'))
 
     try {
+      if (options?.preferBrowserTranscript && browserTranscript) {
+        return browserTranscript
+      }
+
       if (provider === 'browser') {
         if (!browserTranscript && !isSTTSupported.value) {
           lastTranscriptionError.value = '当前浏览器不支持语音识别，请切换到本地识别'
@@ -832,6 +862,7 @@ export const useVoiceStore = defineStore('voice', () => {
     isPlaying,
     isSpeechLoading,
     isTranscribing,
+    audioLevel,
     lastTranscriptionError,
     recordingDuration,
     transcriptionText,

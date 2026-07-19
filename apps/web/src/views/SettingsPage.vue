@@ -192,9 +192,20 @@
         <div class="local-voice-editor">
           <div class="local-recording-guide">
             <div class="local-recording-guide-header">
-              <strong>录音或上传音频时，请完整朗读以下内容</strong>
+              <div>
+                <span class="local-recording-guide-kicker">录制指引</span>
+                <strong>先按下面的内容读一遍</strong>
+              </div>
+              <span class="local-recording-duration">建议 5–8 秒</span>
             </div>
-            <p>{{ localVoiceRecordingScript }}</p>
+            <div class="local-recording-script">
+              <span class="local-recording-label">朗读内容</span>
+              <p>“{{ localVoiceRecordingScript }}”</p>
+            </div>
+            <div class="local-recording-tips">
+              <p><span>语气</span>像平时和朋友聊天：平稳、自然，正常语速；不要刻意压低嗓音、拔高音调或夸张表演。</p>
+              <p><span>时长</span>最少 3 秒，最多 10 秒；建议录 5–8 秒以兼顾效果和本机性能。</p>
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -237,7 +248,7 @@
           >
             {{ localVoiceSaving ? '保存中...' : '创建音色' }}
           </ElButton>
-          <p class="settings-hint local-tts-hint">样本需 3-30 秒、环境安静、只包含一个人的声音。首次试听会下载本地模型。</p>
+          <p class="settings-hint local-tts-hint">官方支持 3 秒快速复刻。本机轻量模式限制为 3-10 秒，推荐 5-8 秒；请使用清晰、安静且只包含一人的录音，样本文字须与录音一致。</p>
         </div>
       </template>
 
@@ -496,7 +507,7 @@ const localTtsVoiceId = ref(localStorage.getItem(storageKeys.localTtsVoiceId) ||
 const localTtsAvailable = ref<boolean | null>(null)
 const localTtsStatus = ref('正在检查本地服务...')
 const localTtsLoading = ref(false)
-const localVoiceRecordingScript = '你好，欢迎使用我的自定义音色。今天的天气很不错，我正在用平稳、自然的语气录制一段参考声音。希望这段声音清晰、流畅，能够准确保留我的说话特点。'
+const localVoiceRecordingScript = '你好，很高兴认识你。今天的天气很好，愿你有轻松愉快的一天。'
 const localVoiceName = ref('')
 const localVoiceTranscript = ref(localVoiceRecordingScript)
 const localVoiceWav = ref<Blob | null>(null)
@@ -1148,16 +1159,61 @@ async function handleClearAll() {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   color: var(--text-primary);
   font-size: 14px;
 }
 
-.local-recording-guide p {
+.local-recording-guide-kicker,
+.local-recording-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.local-recording-duration {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  color: var(--primary-color);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.local-recording-script {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.local-recording-script p {
+  margin: 0 0 4px;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.local-recording-tips {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.local-recording-tips p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.local-recording-tips span {
+  margin-right: 8px;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .local-audio-actions {

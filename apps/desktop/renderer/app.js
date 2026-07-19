@@ -45,6 +45,8 @@
     ['jam', 'Jam'], ['kazi', 'Kazi'], ['douji', 'Douji'], ['luodo', 'Luodo'],
   ]
 
+  const LOCAL_VOICE_RECORDING_SCRIPT = '你好，很高兴认识你。今天的天气很好，愿你有轻松愉快的一天。'
+
   const ROLE_PRESETS = [
     {
       id: 'daily-chat-friend', name: '日常唠嗑搭子', gender: 'neutral', ageText: '同龄朋友感',
@@ -135,6 +137,7 @@
     currentAudio: null,
     localVoices: [],
     voiceSample: null,
+    voiceSampleDuration: 0,
     proactiveChecking: false,
   }
 
@@ -1152,12 +1155,16 @@
         <button id="delete-local-voice" class="danger-button">删除</button>
       </div>
       <div class="local-voice-editor">
-        <div class="recording-script">你好，今天很高兴认识你。希望接下来我们可以自然地聊天，分享每天的心情和有趣的事情。</div>
+        <div class="recording-guide">
+          <div class="recording-guide-header"><div><span class="recording-guide-kicker">录制指引</span><strong>先按下面的内容读一遍</strong></div><span class="recording-duration">建议 5–8 秒</span></div>
+          <div class="recording-script"><span class="recording-label">朗读内容</span><p>“${escapeHTML(LOCAL_VOICE_RECORDING_SCRIPT)}”</p></div>
+          <div class="recording-tips"><p><span>语气</span>像平时和朋友聊天：平稳、自然，正常语速；不要刻意压低嗓音、拔高音调或夸张表演。</p><p><span>时长</span>最少 3 秒，最多 10 秒；建议录 5–8 秒以兼顾效果和本机性能。</p></div>
+        </div>
         <div class="form-grid">
           <div class="field"><label>音色名称</label><input id="local-voice-name" maxlength="80" placeholder="例如：我的声音" /></div>
           <div class="field"><label>参考音频</label><div class="file-actions"><label class="secondary-button file-button"><svg><use href="#icon-upload"/></svg><span>选择音频</span><input id="local-audio-file" type="file" accept="audio/*,.wav,.mp3,.m4a" /></label><button id="record-voice-sample" class="secondary-button"><svg><use href="#icon-mic"/></svg><span>录制样本</span></button></div></div>
         </div>
-        <div id="voice-sample-state" class="field-hint">${state.voiceSample ? '参考音频已准备' : '样本需 3-30 秒，环境安静且只包含一个人的声音。'}</div>
+        <div id="voice-sample-state" class="field-hint">${state.voiceSample ? `参考音频已准备 · ${state.voiceSampleDuration.toFixed(1)} 秒` : '官方支持 3 秒快速复刻。本机轻量模式限制为 3–10 秒。'}</div>
         <button id="create-local-voice" class="primary-button" ${state.voiceSample ? '' : 'disabled'}>创建音色</button>
       </div>`
   }
@@ -1282,7 +1289,9 @@
     const file = event.target.files?.[0]
     if (!file) return
     try {
-      state.voiceSample = await convertAudioToWav(file)
+      const converted = await convertAudioToWav(file)
+      state.voiceSample = converted.blob
+      state.voiceSampleDuration = converted.durationSeconds
       renderSettings()
       showToast('参考音频已准备', 'success')
     } catch {
@@ -1305,7 +1314,9 @@
       recorder.addEventListener('stop', async () => {
         stream.getTracks().forEach((track) => track.stop())
         try {
-          state.voiceSample = await convertAudioToWav(new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }))
+          const converted = await convertAudioToWav(new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }))
+          state.voiceSample = converted.blob
+          state.voiceSampleDuration = converted.durationSeconds
           showToast('录音样本已准备', 'success')
         } catch {
           showToast('录音样本处理失败', 'error')
@@ -1333,13 +1344,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          transcript: '你好，今天很高兴认识你。希望接下来我们可以自然地聊天，分享每天的心情和有趣的事情。',
+          transcript: LOCAL_VOICE_RECORDING_SCRIPT,
           audioDataUrl: await blobToDataURL(state.voiceSample),
         }),
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok || !data.voice) throw new Error(data.message || '创建音色失败')
       state.voiceSample = null
+      state.voiceSampleDuration = 0
       state.settings.localVoiceId = data.voice.id
       persistSettings()
       await refreshLocalVoices(false)
@@ -1408,7 +1420,7 @@
         const sample = Math.max(-1, Math.min(1, mono[index]))
         view.setInt16(44 + index * 2, sample < 0 ? sample * 32768 : sample * 32767, true)
       }
-      return new Blob([buffer], { type: 'audio/wav' })
+      return { blob: new Blob([buffer], { type: 'audio/wav' }), durationSeconds: decoded.duration }
     } finally {
       await context.close()
     }

@@ -37,11 +37,11 @@ describe('local TTS voices', () => {
       const created = await createLocalTtsVoice({
         name: '测试音色',
         transcript: '这是用于测试的参考音频。',
-        audioDataUrl: createWavDataUrl(4),
+        audioDataUrl: createWavDataUrl(3),
       }, voiceDir);
 
       assert.equal(created.name, '测试音色');
-      assert.equal(created.durationSeconds, 4);
+      assert.equal(created.durationSeconds, 3);
       assert.deepEqual(await listLocalTtsVoices(voiceDir), [created]);
       const stored = await getLocalTtsVoice(created.id, voiceDir);
       assert.equal(stored.transcript, '这是用于测试的参考音频。');
@@ -54,16 +54,31 @@ describe('local TTS voices', () => {
     }
   });
 
-  it('rejects samples outside the supported duration range', async () => {
+  it('allows samples from 3 to 10 seconds and rejects samples outside the supported duration range', async () => {
     const voiceDir = await mkdtemp(join(tmpdir(), 'ai-chat-local-tts-test-'));
     try {
+      const longestAllowed = await createLocalTtsVoice({
+        name: '最长允许',
+        transcript: '十秒音频',
+        audioDataUrl: createWavDataUrl(10),
+      }, voiceDir);
+      assert.equal(longestAllowed.durationSeconds, 10);
+
       await assert.rejects(
         createLocalTtsVoice({
           name: '过短',
           transcript: '短音频',
           audioDataUrl: createWavDataUrl(2),
         }, voiceDir),
-        /3-30 秒/,
+        /3-10 秒/,
+      );
+      await assert.rejects(
+        createLocalTtsVoice({
+          name: '过长',
+          transcript: '过长音频',
+          audioDataUrl: createWavDataUrl(11),
+        }, voiceDir),
+        /3-10 秒/,
       );
     } finally {
       await rm(voiceDir, { recursive: true, force: true });

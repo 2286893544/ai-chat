@@ -10,6 +10,7 @@ export interface VoiceRecognitionOptions {
 export interface VoiceRecorderOptions {
   mimeType?: string
   onDataAvailable?: (blob: Blob) => void
+  onVolume?: (level: number) => void
   onStart?: () => void
   onStop?: (blob: Blob) => void
   onError?: (error: string) => void
@@ -102,6 +103,9 @@ export class VoiceRecorder {
   private chunks: Blob[] = []
   private isRecording = false
   private startTime = 0
+  private audioContext: AudioContext | null = null
+  private volumeFrame: number | null = null
+  private onVolume: ((level: number) => void) | null = null
 
   async start(options: VoiceRecorderOptions): Promise<void> {
     if (this.isRecording) return
@@ -114,6 +118,8 @@ export class VoiceRecorder {
       this.chunks = []
       this.isRecording = true
       this.startTime = Date.now()
+      this.onVolume = options.onVolume || null
+      this.startVolumeMonitoring()
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -195,7 +201,47 @@ export class VoiceRecorder {
     return types.find((t) => MediaRecorder.isTypeSupported(t))
   }
 
+  private startVolumeMonitoring(): void {
+    if (!this.stream || !this.onVolume) return
+
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) return
+
+    try {
+      this.audioContext = new AudioContextClass()
+      const analyser = this.audioContext.createAnalyser()
+      analyser.fftSize = 256
+      analyser.smoothingTimeConstant = 0.72
+      const source = this.audioContext.createMediaStreamSource(this.stream)
+      source.connect(analyser)
+      const samples = new Uint8Array(analyser.fftSize)
+
+      const measure = () => {
+        if (!this.isRecording) return
+        analyser.getByteTimeDomainData(samples)
+        let sum = 0
+        for (const sample of samples) {
+          const normalized = (sample - 128) / 128
+          sum += normalized * normalized
+        }
+        this.onVolume?.(Math.min(1, Math.sqrt(sum / samples.length)))
+        this.volumeFrame = window.requestAnimationFrame(measure)
+      }
+      measure()
+    } catch {
+      this.audioContext = null
+    }
+  }
+
   private cleanup(): void {
+    if (this.volumeFrame !== null) {
+      window.cancelAnimationFrame(this.volumeFrame)
+      this.volumeFrame = null
+    }
+    this.onVolume?.(0)
+    this.onVolume = null
+    this.audioContext?.close().catch(() => {})
+    this.audioContext = null
     this.stream?.getTracks().forEach((track) => track.stop())
     this.stream = null
     this.mediaRecorder = null

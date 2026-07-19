@@ -13,6 +13,16 @@
           <span class="chat-header-status" :class="{ streaming: isStreaming }">
             <i></i>{{ isStreaming ? '正在回复' : '本地会话' }}
           </span>
+          <ElButton
+            class="voice-call-entry"
+            text
+            circle
+            title="开始语音通话"
+            :disabled="!apiKeyStore.apiKey || isStreaming || voiceStore.isRecording"
+            @click="startVoiceCall"
+          >
+            <ElIcon><PhoneFilled /></ElIcon>
+          </ElButton>
           <RouterLink class="guide-link" to="/guide">使用教程</RouterLink>
           <ElButton class="input-btn" text circle @click="showMobilePanel = !showMobilePanel" v-if="isMobile" title="角色设置">
             <ElIcon><Setting /></ElIcon>
@@ -81,13 +91,29 @@
         />
       </div>
     </div>
+
+    <VoiceCallOverlay
+      :visible="voiceCallActive"
+      :character-name="currentCharacter?.name || 'AI 助手'"
+      :avatar="currentCharacter?.avatar"
+      :phase="voiceCallPhase"
+      :duration-seconds="voiceCallDuration"
+      :audio-level="voiceStore.audioLevel"
+      :transcript="displayedVoiceCallTranscript"
+      :error-message="voiceCallError"
+      :muted="voiceCallMuted"
+      @end="endVoiceCall"
+      @toggle-mute="toggleVoiceCallMute"
+      @interrupt="interruptVoiceCall"
+      @finish-turn="finishVoiceCallTurn"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { Setting } from '@element-plus/icons-vue'
+import { PhoneFilled, Setting } from '@element-plus/icons-vue'
 import { useApiKeyStore } from '../stores/apiKey'
 import { useCharacterStore } from '../stores/character'
 import { useConversationStore } from '../stores/conversation'
@@ -96,6 +122,7 @@ import { useVoiceStore } from '../stores/voice'
 import MessageList from '../components/MessageList.vue'
 import ChatInput from '../components/ChatInput.vue'
 import CharacterPanel from '../components/CharacterPanel.vue'
+import VoiceCallOverlay from '../components/VoiceCallOverlay.vue'
 import type { Message } from '@ai-chat/shared'
 
 const router = useRouter()
@@ -113,12 +140,38 @@ const lastUserActive = ref(Date.now())
 const autoSpeakEnabled = ref(localStorage.getItem('autoSpeakEnabled') === 'true')
 const speakingMessageId = ref<string | null>(null)
 const stopRequested = ref(false)
+type VoiceCallPhase = 'connecting' | 'listening' | 'muted' | 'transcribing' | 'thinking' | 'speaking' | 'error'
+type AssistantReplyOptions = {
+  allowAutoSpeak?: boolean
+  voiceCall?: boolean
+}
+const voiceCallActive = ref(false)
+const voiceCallPhase = ref<VoiceCallPhase>('connecting')
+const voiceCallDuration = ref(0)
+const voiceCallMuted = ref(false)
+const voiceCallError = ref('')
+const voiceCallTranscript = ref('')
 
 let proactiveInterval: number | null = null
 let proactiveChecking = false
+let voiceCallDurationTimer: number | null = null
+let voiceActivityTimer: number | null = null
+let voiceCallSession = 0
+let voiceTurnFinalizing = false
+let voiceDetected = false
+let voiceLastDetectedAt = 0
+let voiceListeningStartedAt = 0
+let voiceLastInterimTranscript = ''
+let previousBodyOverflow = ''
 
 const currentCharacter = computed(() => characterStore.currentCharacter)
 const proactiveEnabled = computed(() => characterStore.currentCharacter?.proactive?.enabled ?? false)
+const displayedVoiceCallTranscript = computed(() => {
+  if (voiceCallPhase.value === 'listening') {
+    return voiceStore.transcriptionText.trim() || voiceCallTranscript.value
+  }
+  return voiceCallTranscript.value
+})
 const speechState = computed<'idle' | 'loading' | 'playing'>(() => {
   if (voiceStore.isSpeechLoading) return 'loading'
   if (voiceStore.isPlaying) return 'playing'
@@ -163,20 +216,269 @@ onMounted(async () => {
   }
 
   window.addEventListener('resize', handleResize)
+  window.addEventListener('keydown', handleVoiceCallKeydown)
   startProactivePoll()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('keydown', handleVoiceCallKeydown)
   if (proactiveInterval) clearInterval(proactiveInterval)
+  endVoiceCall()
 })
 
 watch(() => conversationStore.currentConversation?.id, async (newId) => {
+  if (voiceCallActive.value) endVoiceCall()
   if (newId) {
     await messageStore.loadMessages(newId)
     syncLastUserActiveFromMessages()
   }
 })
+
+async function startVoiceCall() {
+  if (
+    !apiKeyStore.apiKey
+    || !conversationStore.currentConversation
+    || !characterStore.currentCharacter
+    || voiceCallActive.value
+  ) return
+
+  voiceCallActive.value = true
+  voiceCallPhase.value = 'connecting'
+  voiceCallDuration.value = 0
+  voiceCallMuted.value = false
+  voiceCallError.value = ''
+  voiceCallTranscript.value = ''
+  voiceTurnFinalizing = false
+  const session = ++voiceCallSession
+  previousBodyOverflow = document.body.style.overflow
+  document.body.style.overflow = 'hidden'
+
+  handleStopVoice()
+  clearVoiceCallTimers()
+  voiceCallDurationTimer = window.setInterval(() => {
+    voiceCallDuration.value += 1
+  }, 1000)
+
+  await nextTick()
+  await startVoiceCallListening(session)
+}
+
+async function startVoiceCallListening(session = voiceCallSession) {
+  if (!voiceCallActive.value || session !== voiceCallSession || voiceCallMuted.value) return
+
+  clearVoiceActivityTimer()
+  voiceCallPhase.value = 'connecting'
+  voiceCallError.value = ''
+  voiceCallTranscript.value = ''
+  voiceDetected = false
+  voiceLastDetectedAt = 0
+  voiceLastInterimTranscript = ''
+  voiceListeningStartedAt = Date.now()
+
+  try {
+    await voiceStore.startRecording()
+    if (!voiceCallActive.value || session !== voiceCallSession) {
+      voiceStore.cancelRecording()
+      return
+    }
+    voiceCallPhase.value = 'listening'
+    voiceActivityTimer = window.setInterval(() => monitorVoiceActivity(session), 100)
+  } catch (error: any) {
+    if (!voiceCallActive.value || session !== voiceCallSession) return
+    voiceCallPhase.value = 'error'
+    voiceCallError.value = error?.message === 'VOICE_PERMISSION_DENIED'
+      ? '请允许使用麦克风后重试'
+      : error?.message || '无法启动麦克风'
+  }
+}
+
+function monitorVoiceActivity(session: number) {
+  if (
+    !voiceCallActive.value
+    || session !== voiceCallSession
+    || voiceCallPhase.value !== 'listening'
+    || voiceTurnFinalizing
+  ) return
+
+  const now = Date.now()
+  const interimTranscript = voiceStore.transcriptionText.trim()
+  if (voiceStore.audioLevel >= 0.025) {
+    voiceDetected = true
+    voiceLastDetectedAt = now
+  }
+  if (interimTranscript && interimTranscript !== voiceLastInterimTranscript) {
+    voiceDetected = true
+    voiceLastDetectedAt = now
+    voiceLastInterimTranscript = interimTranscript
+  }
+
+  const listeningMs = now - voiceListeningStartedAt
+  if (voiceDetected && listeningMs >= 600 && now - voiceLastDetectedAt >= 750) {
+    void finishVoiceCallTurn()
+    return
+  }
+
+  if (listeningMs >= 30_000) {
+    if (voiceDetected) {
+      void finishVoiceCallTurn()
+    } else {
+      void restartSilentListeningWindow(session)
+    }
+  }
+}
+
+async function restartSilentListeningWindow(session: number) {
+  if (voiceTurnFinalizing || session !== voiceCallSession) return
+
+  voiceTurnFinalizing = true
+  clearVoiceActivityTimer()
+  await voiceStore.stopRecording()
+  voiceTurnFinalizing = false
+  if (voiceCallActive.value && session === voiceCallSession && !voiceCallMuted.value) {
+    await startVoiceCallListening(session)
+  }
+}
+
+async function finishVoiceCallTurn() {
+  if (
+    !voiceCallActive.value
+    || voiceCallPhase.value !== 'listening'
+    || voiceTurnFinalizing
+    || !conversationStore.currentConversation
+    || !characterStore.currentCharacter
+  ) return
+
+  const session = voiceCallSession
+  const durationMs = Math.max(1000, voiceStore.recordingDuration * 1000)
+  voiceTurnFinalizing = true
+  clearVoiceActivityTimer()
+  voiceCallPhase.value = 'transcribing'
+
+  try {
+    const blob = await voiceStore.stopRecording()
+    if (!voiceCallActive.value || session !== voiceCallSession) return
+    if (!blob) throw new Error('没有获取到录音')
+
+    const transcript = await voiceStore.transcribeAudio(blob, { preferBrowserTranscript: true })
+    if (!voiceCallActive.value || session !== voiceCallSession) return
+    if (!transcript) {
+      throw new Error(voiceStore.lastTranscriptionError || '没有听清，请再说一次')
+    }
+
+    voiceCallTranscript.value = transcript
+    const localUrl = await voiceStore.getRecordingDataURL()
+    const voiceMessage = await messageStore.addMessage({
+      conversationId: conversationStore.currentConversation.id,
+      role: 'user',
+      type: 'voice',
+      content: transcript,
+      voice: {
+        localUrl: localUrl || URL.createObjectURL(blob),
+        durationMs,
+        mimeType: blob.type || 'audio/webm',
+        transcript,
+        transcriptionStatus: 'done',
+      },
+      status: 'done',
+    })
+
+    lastUserActive.value = Date.now()
+    await conversationStore.touchConversation(conversationStore.currentConversation.id)
+    await nextTick()
+
+    voiceCallPhase.value = 'thinking'
+    const reply = await requestAssistantReply(transcript, voiceMessage.id, {
+      allowAutoSpeak: false,
+      voiceCall: true,
+    })
+    if (!voiceCallActive.value || session !== voiceCallSession) return
+    if (!reply.trim()) throw new Error('没有获取到回复，请再试一次')
+
+    voiceCallPhase.value = 'speaking'
+    voiceCallTranscript.value = ''
+    await voiceStore.speakText(reply, characterStore.currentCharacter?.tts)
+    if (!voiceCallActive.value || session !== voiceCallSession) return
+
+    voiceTurnFinalizing = false
+    await startVoiceCallListening(session)
+  } catch (error: any) {
+    if (!voiceCallActive.value || session !== voiceCallSession) return
+    voiceCallPhase.value = 'error'
+    voiceCallError.value = error?.message || '语音通话失败'
+    await waitForVoiceCallRecovery()
+    if (voiceCallActive.value && session === voiceCallSession && !voiceCallMuted.value) {
+      voiceTurnFinalizing = false
+      await startVoiceCallListening(session)
+    }
+  } finally {
+    voiceTurnFinalizing = false
+  }
+}
+
+async function toggleVoiceCallMute() {
+  if (!voiceCallActive.value) return
+
+  if (!voiceCallMuted.value) {
+    voiceCallMuted.value = true
+    voiceCallPhase.value = 'muted'
+    clearVoiceActivityTimer()
+    if (voiceStore.isRecording) voiceStore.cancelRecording()
+    return
+  }
+
+  voiceCallMuted.value = false
+  const session = ++voiceCallSession
+  voiceTurnFinalizing = false
+  await startVoiceCallListening(session)
+}
+
+async function interruptVoiceCall() {
+  if (!voiceCallActive.value) return
+
+  const session = ++voiceCallSession
+  voiceStore.stopPlayback()
+  if (voiceStore.isRecording) voiceStore.cancelRecording()
+  if (isStreaming.value) handleStop()
+  voiceCallMuted.value = false
+  voiceTurnFinalizing = false
+  await startVoiceCallListening(session)
+}
+
+function endVoiceCall() {
+  if (!voiceCallActive.value) return
+
+  voiceCallActive.value = false
+  voiceCallSession += 1
+  clearVoiceCallTimers()
+  if (voiceStore.isRecording) voiceStore.cancelRecording()
+  voiceStore.stopPlayback()
+  if (isStreaming.value) handleStop()
+  voiceCallMuted.value = false
+  voiceCallError.value = ''
+  voiceCallTranscript.value = ''
+  voiceTurnFinalizing = false
+  document.body.style.overflow = previousBodyOverflow
+}
+
+function clearVoiceActivityTimer() {
+  if (voiceActivityTimer !== null) {
+    window.clearInterval(voiceActivityTimer)
+    voiceActivityTimer = null
+  }
+}
+
+function clearVoiceCallTimers() {
+  clearVoiceActivityTimer()
+  if (voiceCallDurationTimer !== null) {
+    window.clearInterval(voiceCallDurationTimer)
+    voiceCallDurationTimer = null
+  }
+}
+
+function waitForVoiceCallRecovery() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, 1400))
+}
 
 async function handleSend(text: string) {
   if (!text.trim() || !conversationStore.currentConversation || !characterStore.currentCharacter) return
@@ -196,8 +498,12 @@ async function handleSend(text: string) {
   await requestAssistantReply(text, userMessage.id)
 }
 
-async function requestAssistantReply(input: string, currentUserMessageId: string) {
-  if (!input.trim() || !conversationStore.currentConversation || !characterStore.currentCharacter) return
+async function requestAssistantReply(
+  input: string,
+  currentUserMessageId: string,
+  options: AssistantReplyOptions = {},
+): Promise<string> {
+  if (!input.trim() || !conversationStore.currentConversation || !characterStore.currentCharacter) return ''
 
   // Start streaming
   isStreaming.value = true
@@ -234,10 +540,12 @@ async function requestAssistantReply(input: string, currentUserMessageId: string
         forbiddenTopics: character.forbiddenTopics,
         preferredTopics: character.preferredTopics,
         tone: character.tone,
-        speakingStyle: character.speakingStyle,
+        speakingStyle: options.voiceCall
+          ? `${character.speakingStyle}。当前是实时语音通话，请只用一到两句自然口语回答，不要使用 Markdown。`
+          : character.speakingStyle,
         catchphrases: character.catchphrases || [],
-        replyLength: character.replyLength,
-        emojiLevel: character.emojiLevel,
+        replyLength: options.voiceCall ? 'short' : character.replyLength,
+        emojiLevel: options.voiceCall ? 'none' : character.emojiLevel,
         userNickname: character.userNickname,
         safety: character.safety,
         proactive: character.proactive,
@@ -253,7 +561,10 @@ async function requestAssistantReply(input: string, currentUserMessageId: string
       content: streamedContent,
       status: 'done'
     })
-    await handleAutoSpeak(assistantMessage.id, streamedContent)
+    if (options.allowAutoSpeak !== false) {
+      await handleAutoSpeak(assistantMessage.id, streamedContent)
+    }
+    return streamedContent
   } catch (err: any) {
     if (stopRequested.value && isStreamAbortError(err)) {
       if (streamedContent.trim()) {
@@ -264,7 +575,7 @@ async function requestAssistantReply(input: string, currentUserMessageId: string
       } else {
         await messageStore.deleteMessage(assistantMessage.id)
       }
-      return
+      return streamedContent
     }
 
     await messageStore.updateMessage(assistantMessage.id, {
@@ -272,6 +583,7 @@ async function requestAssistantReply(input: string, currentUserMessageId: string
       status: 'failed',
       errorCode: 'NETWORK_ERROR'
     })
+    return ''
   } finally {
     await conversationStore.touchConversation(conversationStore.currentConversation.id)
     isStreaming.value = false
@@ -430,6 +742,12 @@ function handleResize() {
   isMobile.value = window.innerWidth <= 768
 }
 
+function handleVoiceCallKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && voiceCallActive.value) {
+    endVoiceCall()
+  }
+}
+
 function syncLastUserActiveFromMessages() {
   const lastUserMessage = [...messageStore.messages]
     .reverse()
@@ -450,6 +768,7 @@ function startProactivePoll() {
 
 async function runProactiveTick() {
   if (proactiveChecking) return
+  if (voiceCallActive.value) return
   if (!proactiveEnabled.value || !conversationStore.currentConversation || !characterStore.currentCharacter) return
   if (!apiKeyStore.apiKey) return
 
@@ -587,6 +906,20 @@ async function runProactiveTick() {
 .guide-link:hover {
   background: #182744;
   color: #fff;
+}
+
+.voice-call-entry.el-button {
+  color: #86ddd1;
+  background: rgba(78, 205, 196, 0.08);
+}
+
+.voice-call-entry.el-button:hover {
+  color: #b4fff5;
+  background: rgba(78, 205, 196, 0.15);
+}
+
+.voice-call-entry.el-button.is-disabled {
+  background: transparent;
 }
 
 @keyframes pulse-text {

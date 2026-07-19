@@ -898,7 +898,15 @@ svg {
 
 .local-voice-status .compact-button { margin-left: auto; height: 30px; padding: 0 9px; gap: 5px; }
 .local-voice-editor { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
-.recording-script { margin-bottom: 14px; padding: 12px; border-left: 3px solid var(--accent); background: var(--accent-soft); color: var(--text); line-height: 1.65; user-select: text; }
+.recording-guide { margin-bottom: 14px; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.recording-guide-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; color: var(--text); font-size: 14px; }
+.recording-guide-kicker, .recording-label { display: block; margin-bottom: 3px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.recording-duration { flex: 0 0 auto; padding: 3px 8px; border-radius: 999px; background: rgba(79, 138, 255, .15); color: var(--accent-strong); font-size: 12px; white-space: nowrap; }
+.recording-script { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #0e1a2d; color: var(--text); user-select: text; }
+.recording-script p { margin: 0; line-height: 1.7; }
+.recording-tips { display: grid; gap: 6px; margin-top: 10px; }
+.recording-tips p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.recording-tips span { margin-right: 8px; color: var(--text); font-weight: 600; }
 .file-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .file-button { position: relative; overflow: hidden; }
 .file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
